@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Tabs, Card, Text, Table, Group, Badge, Button, TextInput, Select, Box, SimpleGrid, Divider } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { reportsApi } from '../api/reports';
+import ExportCSV from '../components/report/ExportCSV';
 
 function ReportsPage() {
   const [loading, setLoading] = useState(false);
@@ -25,14 +26,23 @@ function ReportsPage() {
     try {
       setLoading(true);
       const response = await reportsApi.getStockReport();
-      setStockReport(response.data);
+      
+      const headers = [
+        { label: 'Species', key: 'CommonName' },
+        { label: 'Category', key: 'Category' },
+        { label: 'Current Stock', key: 'CurrentStock' },
+        { label: 'Cost Value', key: 'TotalCostValue' }
+      ];
+      
+      setStockReport({ ...response.data, headers });
+    
     } catch (error) {
       notifications.show({ title: 'Error', message: 'Failed to load stock report', color: 'red' });
     } finally {
       setLoading(false);
     }
   };
-
+  
   const loadMortalityReport = async () => {
     try {
       setLoading(true);
@@ -95,7 +105,11 @@ function ReportsPage() {
           <Card shadow="sm" padding="lg" radius="md" mt="md">
             <Group justify="space-between" mb="md">
               <Text fw={500}>Current Stock by Species</Text>
+              {stockReport && (
+                <ExportCSV data={stockReport ? stockReport.Items : []} fileName="stock_report.csv" headers={stockReport?.headers || []} />
+              )}
               <Button onClick={loadStockReport} loading={loading}>Load Report</Button>
+              
             </Group>
 
             {stockReport && (
