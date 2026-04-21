@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Tabs, Card, Text, Table, Group, Badge, Button, TextInput, Select, Box, SimpleGrid, Divider } from '@mantine/core';
+import { Tabs, Card, Text, Table, Group, Badge, Button, TextInput, Box, SimpleGrid, Stack, Paper } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { reportsApi } from '../api/reports';
 import ExportCSV from '../components/report/ExportCSV';
@@ -26,17 +26,14 @@ function ReportsPage() {
     try {
       setLoading(true);
       const response = await reportsApi.getStockReport();
-      
       const headers = [
         { label: 'Species', key: 'CommonName' },
         { label: 'Category', key: 'Category' },
         { label: 'Current Stock', key: 'CurrentStock' },
         { label: 'Cost Value', key: 'TotalCostValue' }
       ];
-      
       setStockReport({ ...response.data, headers });
-    
-    } catch (error) {
+    } catch {
       notifications.show({ title: 'Error', message: 'Failed to load stock report', color: 'red' });
     } finally {
       setLoading(false);
@@ -50,10 +47,9 @@ function ReportsPage() {
       if (mortalityFilters.startDate) params.startDate = mortalityFilters.startDate;
       if (mortalityFilters.endDate) params.endDate = mortalityFilters.endDate;
       if (mortalityFilters.speciesId) params.speciesId = mortalityFilters.speciesId;
-      
       const response = await reportsApi.getMortalityReport(params);
       setMortalityReport(response.data);
-    } catch (error) {
+    } catch {
       notifications.show({ title: 'Error', message: 'Failed to load mortality report', color: 'red' });
     } finally {
       setLoading(false);
@@ -65,12 +61,11 @@ function ReportsPage() {
       notifications.show({ title: 'Error', message: 'Select date range', color: 'red' });
       return;
     }
-
     try {
       setLoading(true);
       const response = await reportsApi.getSalesReport(salesFilters.startDate, salesFilters.endDate);
       setSalesReport(response.data);
-    } catch (error) {
+    } catch {
       notifications.show({ title: 'Error', message: 'Failed to load sales report', color: 'red' });
     } finally {
       setLoading(false);
@@ -82,7 +77,7 @@ function ReportsPage() {
       setLoading(true);
       const response = await reportsApi.getInventoryValuation();
       setValuationReport(response.data);
-    } catch (error) {
+    } catch {
       notifications.show({ title: 'Error', message: 'Failed to load valuation report', color: 'red' });
     } finally {
       setLoading(false);
@@ -91,253 +86,276 @@ function ReportsPage() {
 
   return (
     <Box>
-      <Text size="xl" fw={700} mb="md">Reports</Text>
+      <Text size="xl" fw={700} mb="lg">Reports</Text>
 
-      <Tabs defaultValue="stock">
-        <Tabs.List>
-          <Tabs.Tab value="stock">Stock Report</Tabs.Tab>
-          <Tabs.Tab value="mortality">Mortality Report</Tabs.Tab>
-          <Tabs.Tab value="sales">Sales Report</Tabs.Tab>
-          <Tabs.Tab value="valuation">Inventory Valuation</Tabs.Tab>
+      <Tabs defaultValue="stock" keepMounted={false}>
+        <Tabs.List mb="lg">
+          <Tabs.Tab value="stock">Stock</Tabs.Tab>
+          <Tabs.Tab value="mortality">Mortality</Tabs.Tab>
+          <Tabs.Tab value="sales">Sales</Tabs.Tab>
+          <Tabs.Tab value="valuation">Valuation</Tabs.Tab>
         </Tabs.List>
 
         <Tabs.Panel value="stock">
-          <Card shadow="sm" padding="lg" radius="md" mt="md">
-            <Group justify="space-between" mb="md">
-              <Text fw={500}>Current Stock by Species</Text>
+          <Stack gap="lg">
+            <Group justify="space-between">
+              <Button onClick={loadStockReport} loading={loading} variant="light">
+                Load Stock Report
+              </Button>
               {stockReport && (
-                <ExportCSV data={stockReport ? stockReport.Items : []} fileName="stock_report.csv" headers={stockReport?.headers || []} />
+                <ExportCSV
+                  data={stockReport.Items || []}
+                  fileName="stock_report.csv"
+                  headers={stockReport.headers || []}
+                />
               )}
-              <Button onClick={loadStockReport} loading={loading}>Load Report</Button>
-              
             </Group>
 
             {stockReport && (
               <>
-                <SimpleGrid cols={2} mb="md">
-                  <Card padding="sm">
+                <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="lg">
+                  <Card padding="lg" radius="md" withBorder>
                     <Text size="sm" c="dimmed">Total Species</Text>
                     <Text size="xl" fw={700}>{stockReport.TotalSpecies}</Text>
                   </Card>
-                  <Card padding="sm">
+                  <Card padding="lg" radius="md" withBorder>
                     <Text size="sm" c="dimmed">Total Stock</Text>
-                    <Text size="xl" fw={700}>{stockReport.TotalStock}</Text>
+                    <Text size="xl" fw={700} c="teal.7">{stockReport.TotalStock}</Text>
                   </Card>
                 </SimpleGrid>
 
-                <Table striped>
-                  <Table.Thead>
-                    <Table.Tr>
-                      <Table.Th>Species</Table.Th>
-                      <Table.Th>Category</Table.Th>
-                      <Table.Th>Current Stock</Table.Th>
-                      <Table.Th>Cost Value</Table.Th>
-                    </Table.Tr>
-                  </Table.Thead>
-                  <Table.Tbody>
-                    {stockReport.Items.map((item, idx) => (
-                      <Table.Tr key={idx}>
-                        <Table.Td>{item.CommonName}</Table.Td>
-                        <Table.Td>{item.Category}</Table.Td>
-                        <Table.Td>{item.CurrentStock}</Table.Td>
-                        <Table.Td>${item.TotalCostValue.toFixed(2)}</Table.Td>
+                <Card padding="lg" radius="md" withBorder>
+                  <Text fw={700} mb="md">Current Stock by Species</Text>
+                  <Table>
+                    <Table.Thead>
+                      <Table.Tr>
+                        <Table.Th>Species</Table.Th>
+                        <Table.Th>Category</Table.Th>
+                        <Table.Th>Current Stock</Table.Th>
+                        <Table.Th>Cost Value</Table.Th>
                       </Table.Tr>
-                    ))}
-                  </Table.Tbody>
-                </Table>
+                    </Table.Thead>
+                    <Table.Tbody>
+                      {stockReport.Items.map((item, idx) => (
+                        <Table.Tr key={idx}>
+                          <Table.Td fw={500}>{item.CommonName}</Table.Td>
+                          <Table.Td><Badge variant="light" size="sm">{item.Category}</Badge></Table.Td>
+                          <Table.Td>{item.CurrentStock}</Table.Td>
+                          <Table.Td>${item.TotalCostValue.toFixed(2)}</Table.Td>
+                        </Table.Tr>
+                      ))}
+                    </Table.Tbody>
+                  </Table>
+                </Card>
               </>
             )}
-          </Card>
+          </Stack>
         </Tabs.Panel>
 
         <Tabs.Panel value="mortality">
-          <Card shadow="sm" padding="lg" radius="md" mt="md">
-            <Group justify="space-between" mb="md">
-              <Text fw={500}>Mortality Analysis</Text>
-              <Button onClick={loadMortalityReport} loading={loading}>Load Report</Button>
-            </Group>
-
-            <Group grow mb="md">
-              <TextInput
-                label="Start Date"
-                type="date"
-                value={mortalityFilters.startDate}
-                onChange={(e) => setMortalityFilters({ ...mortalityFilters, startDate: e.target.value })}
-              />
-              <TextInput
-                label="End Date"
-                type="date"
-                value={mortalityFilters.endDate}
-                onChange={(e) => setMortalityFilters({ ...mortalityFilters, endDate: e.target.value })}
-              />
-            </Group>
+          <Stack gap="lg">
+            <Paper p="lg" radius="md" withBorder style={{ maxWidth: 500 }}>
+              <Stack gap="sm">
+                <Text fw={500} size="sm">Filters</Text>
+                <Group grow>
+                  <TextInput
+                    label="Start Date"
+                    type="date"
+                    value={mortalityFilters.startDate}
+                    onChange={(e) => setMortalityFilters({ ...mortalityFilters, startDate: e.target.value })}
+                  />
+                  <TextInput
+                    label="End Date"
+                    type="date"
+                    value={mortalityFilters.endDate}
+                    onChange={(e) => setMortalityFilters({ ...mortalityFilters, endDate: e.target.value })}
+                  />
+                </Group>
+                <Button onClick={loadMortalityReport} loading={loading} variant="light">
+                  Load Report
+                </Button>
+              </Stack>
+            </Paper>
 
             {mortalityReport && (
               <>
-                <SimpleGrid cols={3} mb="md">
-                  <Card padding="sm">
+                <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="lg">
+                  <Card padding="lg" radius="md" withBorder>
                     <Text size="sm" c="dimmed">Total Deaths</Text>
-                    <Text size="xl" fw={700}>{mortalityReport.TotalDeaths}</Text>
+                    <Text size="xl" fw={700} c="red.7">{mortalityReport.TotalDeaths}</Text>
                   </Card>
-                  <Card padding="sm">
+                  <Card padding="lg" radius="md" withBorder>
                     <Text size="sm" c="dimmed">Sold</Text>
-                    <Text size="xl" fw={700} c="green">{mortalityReport.TotalSold}</Text>
+                    <Text size="xl" fw={700} c="green.7">{mortalityReport.TotalSold}</Text>
                   </Card>
-                  <Card padding="sm">
+                  <Card padding="lg" radius="md" withBorder>
                     <Text size="sm" c="dimmed">Other Causes</Text>
-                    <Text size="xl" fw={700} c="red">{mortalityReport.TotalOtherCauses}</Text>
+                    <Text size="xl" fw={700} c="orange.7">{mortalityReport.TotalOtherCauses}</Text>
                   </Card>
                 </SimpleGrid>
 
-                {mortalityReport.Summaries.map((summary, idx) => (
-                  <Card key={idx} padding="sm" mb="sm">
-                    <Text fw={700} mb="xs">{summary.CommonName}</Text>
-                    <Group gap="md">
-                      <Badge color="red">Deaths: {summary.TotalDeaths}</Badge>
-                      <Badge color="green">Sold: {summary.Sold}</Badge>
-                      <Badge color="orange">Other: {summary.OtherCauses}</Badge>
-                    </Group>
-                  </Card>
-                ))}
+                <Stack gap="sm">
+                  {mortalityReport.Summaries.map((summary, idx) => (
+                    <Card key={idx} padding="lg" radius="md" withBorder>
+                      <Group justify="space-between" mb="sm">
+                        <Text fw={700}>{summary.CommonName}</Text>
+                        <Badge color="red">{summary.TotalDeaths} deaths</Badge>
+                      </Group>
+                      <Group gap="md">
+                        <Badge color="green" variant="light">Sold: {summary.Sold}</Badge>
+                        <Badge color="orange" variant="light">Other: {summary.OtherCauses}</Badge>
+                      </Group>
+                    </Card>
+                  ))}
+                </Stack>
               </>
             )}
-          </Card>
+          </Stack>
         </Tabs.Panel>
 
         <Tabs.Panel value="sales">
-          <Card shadow="sm" padding="lg" radius="md" mt="md">
-            <Group justify="space-between" mb="md">
-              <Text fw={500}>Sales Performance</Text>
-              <Button onClick={loadSalesReport} loading={loading}>Load Report</Button>
-            </Group>
-
-            <Group grow mb="md">
-              <TextInput
-                label="Start Date"
-                type="date"
-                value={salesFilters.startDate}
-                onChange={(e) => setSalesFilters({ ...salesFilters, startDate: e.target.value })}
-              />
-              <TextInput
-                label="End Date"
-                type="date"
-                value={salesFilters.endDate}
-                onChange={(e) => setSalesFilters({ ...salesFilters, endDate: e.target.value })}
-              />
-            </Group>
+          <Stack gap="lg">
+            <Paper p="lg" radius="md" withBorder style={{ maxWidth: 500 }}>
+              <Stack gap="sm">
+                <Text fw={500} size="sm">Date Range</Text>
+                <Group grow>
+                  <TextInput
+                    label="Start Date"
+                    type="date"
+                    value={salesFilters.startDate}
+                    onChange={(e) => setSalesFilters({ ...salesFilters, startDate: e.target.value })}
+                  />
+                  <TextInput
+                    label="End Date"
+                    type="date"
+                    value={salesFilters.endDate}
+                    onChange={(e) => setSalesFilters({ ...salesFilters, endDate: e.target.value })}
+                  />
+                </Group>
+                <Button onClick={loadSalesReport} loading={loading} variant="light">
+                  Load Report
+                </Button>
+              </Stack>
+            </Paper>
 
             {salesReport && (
               <>
-                <SimpleGrid cols={2} mb="md">
-                  <Card padding="sm">
+                <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="lg">
+                  <Card padding="lg" radius="md" withBorder>
                     <Text size="sm" c="dimmed">Total Revenue</Text>
-                    <Text size="xl" fw={700} c="green">${salesReport.TotalRevenue.toFixed(2)}</Text>
+                    <Text size="xl" fw={700} c="green.7">${salesReport.TotalRevenue.toFixed(2)}</Text>
                   </Card>
-                  <Card padding="sm">
+                  <Card padding="lg" radius="md" withBorder>
                     <Text size="sm" c="dimmed">Items Sold</Text>
                     <Text size="xl" fw={700}>{salesReport.TotalItemsSold}</Text>
                   </Card>
                 </SimpleGrid>
 
-                <Text fw={500} mb="xs">Top Species by Sales</Text>
-                <Table striped mb="md">
-                  <Table.Thead>
-                    <Table.Tr>
-                      <Table.Th>Species</Table.Th>
-                      <Table.Th>Quantity Sold</Table.Th>
-                      <Table.Th>Revenue</Table.Th>
-                    </Table.Tr>
-                  </Table.Thead>
-                  <Table.Tbody>
-                    {salesReport.TopSpecies.map((species, idx) => (
-                      <Table.Tr key={idx}>
-                        <Table.Td>{species.CommonName}</Table.Td>
-                        <Table.Td>{species.TotalQuantitySold}</Table.Td>
-                        <Table.Td>${species.TotalRevenue.toFixed(2)}</Table.Td>
+                <Card padding="lg" radius="md" withBorder>
+                  <Text fw={700} mb="md">Top Species by Sales</Text>
+                  <Table>
+                    <Table.Thead>
+                      <Table.Tr>
+                        <Table.Th>Species</Table.Th>
+                        <Table.Th>Quantity Sold</Table.Th>
+                        <Table.Th>Revenue</Table.Th>
                       </Table.Tr>
-                    ))}
-                  </Table.Tbody>
-                </Table>
+                    </Table.Thead>
+                    <Table.Tbody>
+                      {salesReport.TopSpecies.map((species, idx) => (
+                        <Table.Tr key={idx}>
+                          <Table.Td fw={500}>{species.CommonName}</Table.Td>
+                          <Table.Td>{species.TotalQuantitySold}</Table.Td>
+                          <Table.Td>${species.TotalRevenue.toFixed(2)}</Table.Td>
+                        </Table.Tr>
+                      ))}
+                    </Table.Tbody>
+                  </Table>
+                </Card>
 
-                <Text fw={500} mb="xs">Recent Sales</Text>
-                <Table striped>
-                  <Table.Thead>
-                    <Table.Tr>
-                      <Table.Th>Date</Table.Th>
-                      <Table.Th>Customer</Table.Th>
-                      <Table.Th>Items</Table.Th>
-                      <Table.Th>Total</Table.Th>
-                    </Table.Tr>
-                  </Table.Thead>
-                  <Table.Tbody>
-                    {salesReport.Sales.slice(0, 10).map((sale, idx) => (
-                      <Table.Tr key={idx}>
-                        <Table.Td>{new Date(sale.Date).toLocaleDateString()}</Table.Td>
-                        <Table.Td>{sale.CustomerName}</Table.Td>
-                        <Table.Td>{sale.ItemCount}</Table.Td>
-                        <Table.Td>${sale.TotalAmount.toFixed(2)}</Table.Td>
+                <Card padding="lg" radius="md" withBorder>
+                  <Text fw={700} mb="md">Recent Sales</Text>
+                  <Table>
+                    <Table.Thead>
+                      <Table.Tr>
+                        <Table.Th>Date</Table.Th>
+                        <Table.Th>Customer</Table.Th>
+                        <Table.Th>Items</Table.Th>
+                        <Table.Th>Total</Table.Th>
                       </Table.Tr>
-                    ))}
-                  </Table.Tbody>
-                </Table>
+                    </Table.Thead>
+                    <Table.Tbody>
+                      {salesReport.Sales.slice(0, 10).map((sale, idx) => (
+                        <Table.Tr key={idx}>
+                          <Table.Td>{new Date(sale.Date).toLocaleDateString()}</Table.Td>
+                          <Table.Td fw={500}>{sale.CustomerName}</Table.Td>
+                          <Table.Td>{sale.ItemCount}</Table.Td>
+                          <Table.Td><Badge color="green" variant="light">${sale.TotalAmount.toFixed(2)}</Badge></Table.Td>
+                        </Table.Tr>
+                      ))}
+                    </Table.Tbody>
+                  </Table>
+                </Card>
               </>
             )}
-          </Card>
+          </Stack>
         </Tabs.Panel>
 
         <Tabs.Panel value="valuation">
-          <Card shadow="sm" padding="lg" radius="md" mt="md">
-            <Group justify="space-between" mb="md">
-              <Text fw={500}>Inventory Valuation</Text>
-              <Button onClick={loadValuationReport} loading={loading}>Load Report</Button>
+          <Stack gap="lg">
+            <Group justify="space-between">
+              <Button onClick={loadValuationReport} loading={loading} variant="light">
+                Load Valuation Report
+              </Button>
             </Group>
 
             {valuationReport && (
               <>
-                <SimpleGrid cols={4} mb="md">
-                  <Card padding="sm">
+                <SimpleGrid cols={{ base: 1, sm: 2, lg: 4 }} spacing="lg">
+                  <Card padding="lg" radius="md" withBorder>
                     <Text size="sm" c="dimmed">Total Units</Text>
                     <Text size="xl" fw={700}>{valuationReport.TotalUnitsInStock}</Text>
                   </Card>
-                  <Card padding="sm">
+                  <Card padding="lg" radius="md" withBorder>
                     <Text size="sm" c="dimmed">Total Cost</Text>
-                    <Text size="xl" fw={700} c="blue">${valuationReport.TotalCostValue.toFixed(2)}</Text>
+                    <Text size="xl" fw={700} c="teal.7">${valuationReport.TotalCostValue.toFixed(2)}</Text>
                   </Card>
-                  <Card padding="sm">
+                  <Card padding="lg" radius="md" withBorder>
                     <Text size="sm" c="dimmed">Total Lots</Text>
                     <Text size="xl" fw={700}>{valuationReport.TotalLots}</Text>
                   </Card>
-                  <Card padding="sm">
+                  <Card padding="lg" radius="md" withBorder>
                     <Text size="sm" c="dimmed">Avg Cost/Unit</Text>
                     <Text size="xl" fw={700}>${valuationReport.AverageUnitCost.toFixed(2)}</Text>
                   </Card>
                 </SimpleGrid>
 
-                <Divider my="md" />
-                <Text fw={500} mb="md">Valuation by Category</Text>
-                <Table striped>
-                  <Table.Thead>
-                    <Table.Tr>
-                      <Table.Th>Category</Table.Th>
-                      <Table.Th>Units in Stock</Table.Th>
-                      <Table.Th>Total Cost Value</Table.Th>
-                      <Table.Th>Average Unit Cost</Table.Th>
-                    </Table.Tr>
-                  </Table.Thead>
-                  <Table.Tbody>
-                    {valuationReport.ByCategory.map((cat, idx) => (
-                      <Table.Tr key={idx}>
-                        <Table.Td>{cat.Category}</Table.Td>
-                        <Table.Td>{cat.UnitsInStock}</Table.Td>
-                        <Table.Td>${cat.TotalCostValue.toFixed(2)}</Table.Td>
-                        <Table.Td>${cat.AverageUnitCost.toFixed(2)}</Table.Td>
+                <Card padding="lg" radius="md" withBorder>
+                  <Text fw={700} mb="md">Valuation by Category</Text>
+                  <Table>
+                    <Table.Thead>
+                      <Table.Tr>
+                        <Table.Th>Category</Table.Th>
+                        <Table.Th>Units in Stock</Table.Th>
+                        <Table.Th>Total Cost Value</Table.Th>
+                        <Table.Th>Avg Unit Cost</Table.Th>
                       </Table.Tr>
-                    ))}
-                  </Table.Tbody>
-                </Table>
+                    </Table.Thead>
+                    <Table.Tbody>
+                      {valuationReport.ByCategory.map((cat, idx) => (
+                        <Table.Tr key={idx}>
+                          <Table.Td><Badge variant="light" size="sm">{cat.Category}</Badge></Table.Td>
+                          <Table.Td>{cat.UnitsInStock}</Table.Td>
+                          <Table.Td>${cat.TotalCostValue.toFixed(2)}</Table.Td>
+                          <Table.Td>${cat.AverageUnitCost.toFixed(2)}</Table.Td>
+                        </Table.Tr>
+                      ))}
+                    </Table.Tbody>
+                  </Table>
+                </Card>
               </>
             )}
-          </Card>
+          </Stack>
         </Tabs.Panel>
       </Tabs>
     </Box>

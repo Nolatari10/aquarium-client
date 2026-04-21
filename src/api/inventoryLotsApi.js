@@ -11,7 +11,7 @@ export async function createInventoryLot(dto) {
   });
 
     if (!response.ok) {
-        throw new Error(`Error HTTP: ${response.status}` || "Error al cargar lotes de inventario");
+        throw new Error(response.status ? `Error HTTP: ${response.status}` : "Error al cargar lotes de inventario");
     }
 
     return await response.json();

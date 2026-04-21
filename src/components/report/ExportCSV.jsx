@@ -1,35 +1,61 @@
-import React from 'react';
-import {CSVLink, CSVDownload } from 'react-csv';
+import { useState } from 'react';
+import { Modal, Button, Group, Text, Stack } from '@mantine/core';
+import { IconDownload } from '@tabler/icons-react';
+import { CSVLink } from 'react-csv';
 
+const ExportCSV = ({ data, fileName, headers }) => {
+  const [opened, setOpened] = useState(false);
 
-const ExportCSV = ({data, fileName, headers}) => {
-    //start with the boxt closed (false)
-    const [showConfirm, setShowConfirm] = React.useState(false);
-    
-    const toggleConfirm = () => {
-        setShowConfirm(!showConfirm);
-    }
-    const handleYes = () => {
-    // Logic for "Yes" happens here (the CSVLink handles the actual download)
-    setShowConfirm(false); 
+  const handleConfirm = () => {
+    setOpened(false);
   };
-     return(
-        <div className ="export-csv">
-            {!showConfirm ? (
-                //Initial state: Just the trigger button
-                <button onClick={toggleConfirm}>Export CSV</button>
-            ) : (
-                //Confirmation state: Show the CSVLink and a cancel button
-                <div className="confirmation-box" style={{ border: '1px solid black', padding: '10px' }}>
-                    <p>Are you sure you want to export this report?</p>
-                    <CSVLink data={data} headers={headers} filename={fileName} className="button" target="_blank" onClick={handleYes}>yes </CSVLink>
-                    <button onClick={toggleConfirm}>Cancel</button>
-                </div>
-            )}
-   
-        </div>
-    );
-}
 
+  return (
+    <>
+      <Button
+        variant="light"
+        color="teal"
+        size="sm"
+        leftSection={<IconDownload size={16} />}
+        onClick={() => setOpened(true)}
+      >
+        Export CSV
+      </Button>
+
+      <Modal
+        opened={opened}
+        onClose={() => setOpened(false)}
+        title="Export Report"
+        centered
+        size="sm"
+      >
+        <Stack gap="md">
+          <Text size="sm">
+            Are you sure you want to export this report as a CSV file?
+          </Text>
+          <Text size="xs" c="dimmed">
+            {data?.length || 0} rows will be exported.
+          </Text>
+          <Group justify="flex-end" gap="sm">
+            <Button variant="default" onClick={() => setOpened(false)}>
+              Cancel
+            </Button>
+            <CSVLink
+              data={data || []}
+              headers={headers || []}
+              filename={fileName || 'report.csv'}
+              target="_blank"
+              onClick={handleConfirm}
+            >
+              <Button color="teal" type="button">
+                Download
+              </Button>
+            </CSVLink>
+          </Group>
+        </Stack>
+      </Modal>
+    </>
+  );
+};
 
 export default ExportCSV;

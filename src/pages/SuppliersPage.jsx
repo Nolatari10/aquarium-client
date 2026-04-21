@@ -1,14 +1,16 @@
 import { useState, useEffect } from 'react';
-import { Button, Table, Modal, TextInput, Textarea, Group, Text, ActionIcon, Box } from '@mantine/core';
+import { Button, Table, Modal, TextInput, Textarea, Group, Text, ActionIcon, Box, Stack } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
-import { IconPlus, IconEdit, IconTrash } from '@tabler/icons-react';
+import { IconPlus, IconEdit, IconTrash, IconSearch } from '@tabler/icons-react';
 import { suppliersApi } from '../api/suppliers';
 
 function SuppliersPage() {
   const [suppliers, setSuppliers] = useState([]);
+  const [filteredSuppliers, setFilteredSuppliers] = useState([]);
   const [editingSupplier, setEditingSupplier] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [search, setSearch] = useState('');
   const [opened, { open, close }] = useDisclosure(false);
 
   const [formData, setFormData] = useState({
@@ -23,11 +25,22 @@ function SuppliersPage() {
     loadSuppliers();
   }, []);
 
+  useEffect(() => {
+    const term = search.toLowerCase();
+    const filtered = suppliers.filter(s =>
+      s.Name?.toLowerCase().includes(term) ||
+      s.Email?.toLowerCase().includes(term) ||
+      s.Phone?.toLowerCase().includes(term)
+    );
+    setFilteredSuppliers(filtered);
+  }, [search, suppliers]);
+
   const loadSuppliers = async () => {
     try {
       const response = await suppliersApi.getAll();
       setSuppliers(response.data);
-    } catch (error) {
+      setFilteredSuppliers(response.data);
+    } catch {
       notifications.show({ title: 'Error', message: 'Failed to load suppliers', color: 'red' });
     }
   };
@@ -37,18 +50,18 @@ function SuppliersPage() {
       setLoading(true);
       if (editingSupplier) {
         await suppliersApi.update(editingSupplier.Id, formData);
-        notifications.show({ title: 'Success', message: 'Supplier updated' });
+        notifications.show({ title: 'Success', message: 'Supplier updated', color: 'green' });
       } else {
         await suppliersApi.create(formData);
-        notifications.show({ title: 'Success', message: 'Supplier created' });
+        notifications.show({ title: 'Success', message: 'Supplier created', color: 'green' });
       }
       close();
       resetForm();
       loadSuppliers();
-    } catch (error) {
+    } catch (e) {
       notifications.show({
         title: 'Error',
-        message: error.response?.data?.ErrorMessage || 'Operation failed',
+        message: e.response?.data?.ErrorMessage || 'Operation failed',
         color: 'red'
       });
     } finally {
@@ -73,9 +86,9 @@ function SuppliersPage() {
     
     try {
       await suppliersApi.delete(id);
-      notifications.show({ title: 'Success', message: 'Supplier deleted' });
+      notifications.show({ title: 'Success', message: 'Supplier deleted', color: 'green' });
       loadSuppliers();
-    } catch (error) {
+    } catch {
       notifications.show({ title: 'Error', message: 'Failed to delete supplier', color: 'red' });
     }
   };
@@ -90,9 +103,9 @@ function SuppliersPage() {
     open();
   };
 
-  const rows = suppliers.map((item) => (
+  const rows = filteredSuppliers.map((item) => (
     <Table.Tr key={item.Id}>
-      <Table.Td>{item.Name}</Table.Td>
+      <Table.Td fw={500}>{item.Name}</Table.Td>
       <Table.Td>{item.Phone}</Table.Td>
       <Table.Td>{item.Email}</Table.Td>
       <Table.Td>
@@ -110,65 +123,81 @@ function SuppliersPage() {
 
   return (
     <Box>
-      <Group justify="space-between" mb="md">
-        <Text size="xl" fw={700}>Suppliers Management</Text>
+      <Group justify="space-between" mb="lg">
+        <Box>
+          <Text size="xl" fw={700}>Suppliers</Text>
+          <Text size="sm" c="dimmed">{filteredSuppliers.length} suppliers registered</Text>
+        </Box>
         <Button leftSection={<IconPlus size={16} />} onClick={handleOpen}>
           Add Supplier
         </Button>
       </Group>
 
-      <Table striped highlightOnHover>
-        <Table.Thead>
-          <Table.Tr>
-            <Table.Th>Name</Table.Th>
-            <Table.Th>Phone</Table.Th>
-            <Table.Th>Email</Table.Th>
-            <Table.Th>Actions</Table.Th>
-          </Table.Tr>
-        </Table.Thead>
-        <Table.Tbody>{rows}</Table.Tbody>
-      </Table>
+      <TextInput
+        placeholder="Search suppliers..."
+        leftSection={<IconSearch size={16} />}
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        mb="lg"
+        style={{ maxWidth: 320 }}
+      />
 
-      <Modal opened={opened} onClose={close} title={editingSupplier ? 'Edit Supplier' : 'Add Supplier'}>
+      {filteredSuppliers.length > 0 ? (
+        <Table>
+          <Table.Thead>
+            <Table.Tr>
+              <Table.Th>Name</Table.Th>
+              <Table.Th>Phone</Table.Th>
+              <Table.Th>Email</Table.Th>
+              <Table.Th>Actions</Table.Th>
+            </Table.Tr>
+          </Table.Thead>
+          <Table.Tbody>{rows}</Table.Tbody>
+        </Table>
+      ) : (
+        <Stack align="center" py="xl">
+          <Text c="dimmed">No suppliers found</Text>
+          <Button variant="light" onClick={handleOpen}>Add your first supplier</Button>
+        </Stack>
+      )}
+
+      <Modal opened={opened} onClose={close} title={editingSupplier ? 'Edit Supplier' : 'Add Supplier'} size="md">
         <form onSubmit={(e) => { e.preventDefault(); handleSubmit(); }}>
-          <TextInput
-            label="Name"
-            required
-            value={formData.Name}
-            onChange={(e) => setFormData({ ...formData, Name: e.target.value })}
-            mb="sm"
-          />
-          <TextInput
-            label="Phone"
-            value={formData.Phone}
-            onChange={(e) => setFormData({ ...formData, Phone: e.target.value })}
-            mb="sm"
-          />
-          <TextInput
-            label="Email"
-            type="email"
-            value={formData.Email}
-            onChange={(e) => setFormData({ ...formData, Email: e.target.value })}
-            mb="sm"
-          />
-          <Textarea
-            label="Contact Info"
-            value={formData.ContactInfo}
-            onChange={(e) => setFormData({ ...formData, ContactInfo: e.target.value })}
-            mb="sm"
-          />
-          <Textarea
-            label="Notes"
-            value={formData.Notes}
-            onChange={(e) => setFormData({ ...formData, Notes: e.target.value })}
-            mb="md"
-          />
-          <Group justify="flex-end">
-            <Button variant="default" onClick={close} disabled={loading}>Cancel</Button>
-            <Button type="submit" loading={loading}>
-              {editingSupplier ? 'Update' : 'Create'}
-            </Button>
-          </Group>
+          <Stack gap="sm">
+            <TextInput
+              label="Name"
+              required
+              value={formData.Name}
+              onChange={(e) => setFormData({ ...formData, Name: e.target.value })}
+            />
+            <TextInput
+              label="Phone"
+              value={formData.Phone}
+              onChange={(e) => setFormData({ ...formData, Phone: e.target.value })}
+            />
+            <TextInput
+              label="Email"
+              type="email"
+              value={formData.Email}
+              onChange={(e) => setFormData({ ...formData, Email: e.target.value })}
+            />
+            <Textarea
+              label="Contact Info"
+              value={formData.ContactInfo}
+              onChange={(e) => setFormData({ ...formData, ContactInfo: e.target.value })}
+            />
+            <Textarea
+              label="Notes"
+              value={formData.Notes}
+              onChange={(e) => setFormData({ ...formData, Notes: e.target.value })}
+            />
+            <Group justify="flex-end" mt="md">
+              <Button variant="default" onClick={close} disabled={loading}>Cancel</Button>
+              <Button type="submit" loading={loading}>
+                {editingSupplier ? 'Update' : 'Create'}
+              </Button>
+            </Group>
+          </Stack>
         </form>
       </Modal>
     </Box>
