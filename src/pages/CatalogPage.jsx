@@ -3,11 +3,11 @@ import { Card, Text, SimpleGrid, Group, Badge, Box, TextInput, Stack } from '@ma
 import { notifications } from '@mantine/notifications';
 import { IconSearch } from '@tabler/icons-react';
 import { catalogApi } from '../api/catalog';
-
+import { useTranslation } from 'react-i18next';
 function CatalogPage() {
   const [catalog, setCatalog] = useState([]);
   const [searchField, setSearchField] = useState('');
-
+  const {t, i18n} = useTranslation();
   const loadCatalog = async () => {
     try {
       const response = await catalogApi.getAll();
@@ -25,7 +25,7 @@ function CatalogPage() {
   const getStockBadge = (stock) => {
     if (stock === 0) return <Badge color="red">Out of Stock</Badge>;
     if (stock < 10) return <Badge color="yellow">{stock} (Low)</Badge>;
-    return <Badge color="green">{stock} Available</Badge>;
+    return <Badge color="green">{stock} {t('Available')}</Badge>;
   };
 
   const searchTerm = searchField.toLowerCase();
@@ -42,13 +42,13 @@ function CatalogPage() {
     <Box>
       <Group justify="space-between" mb="lg">
         <Box>
-          <Text size="xl" fw={700}>Catalog</Text>
+          <Text size="xl" fw={700}>{t('Catalog')}</Text>
           <Text size="sm" c="dimmed">{filteredCatalog.length} items with available stock</Text>
         </Box>
       </Group>
 
       <TextInput
-        placeholder="Search by name, scientific name or category..."
+        placeholder={t('Search by name, scientific name or category...')}
         leftSection={<IconSearch size={16} />}
         value={searchField}
         onChange={(e) => setSearchField(e.target.value)}
@@ -68,22 +68,22 @@ function CatalogPage() {
               <Text size="sm" c="dimmed" mb="md" fs="italic">{item.ScientificName}</Text>
 
               <Group justify="space-between" mb="xs">
-                <Text size="sm" c="dimmed">Category</Text>
+                <Text size="sm" c="dimmed">{t('Category')}</Text>
                 <Text size="sm" fw={500}>{item.Category}</Text>
               </Group>
               
               <Group justify="space-between" mb="xs">
-                <Text size="sm" c="dimmed">Variety</Text>
+                <Text size="sm" c="dimmed">{t('Variety')}</Text>
                 <Text size="sm" fw={500}>{item.Variety}</Text>
               </Group>
               
               <Group justify="space-between" mb="xs">
-                <Text size="sm" c="dimmed">Units Available</Text>
+                <Text size="sm" c="dimmed">{t('Units Available')}</Text>
                 <Text size="sm" fw={500}>{item.CurrentBiologicalStock}</Text>
               </Group>
               
               <Group justify="space-between">
-                <Text size="sm" c="dimmed">Oldest Lot</Text>
+                <Text size="sm" c="dimmed">{t('Oldest Lot')}</Text>
                 <Text size="sm" fw={500}>
                   {item.OldestArrivalDate ? new Date(item.OldestArrivalDate).toLocaleDateString() : 'N/A'}
                 </Text>

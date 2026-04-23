@@ -17,8 +17,10 @@ import InventoryLotsPage from './pages/InventoryLotsPage';
 import SalesPage from './pages/SalesPage';
 import CatalogPage from './pages/CatalogPage';
 import ReportsPage from './pages/ReportsPage';
+import { useTranslation } from 'react-i18next';
 
 const navLinks = [
+  
   { icon: IconDashboard, label: 'Dashboard', to: '/' },
   { icon: IconFish, label: 'Species', to: '/species' },
   { icon: IconUsers, label: 'Suppliers', to: '/suppliers' },
@@ -29,6 +31,7 @@ const navLinks = [
 ];
 
 function App() {
+  const { t, i18n } = useTranslation();
   const [mobileOpened, { toggle: toggleMobile, close: closeMobile }] = useDisclosure();
   const [desktopOpened, { toggle: toggleDesktop }] = useDisclosure(true);
   const location = useLocation();
@@ -53,7 +56,7 @@ function App() {
             <Burger opened={mobileOpened} onClick={toggleMobile} hiddenFrom="sm" size="sm" />
             <Burger opened={desktopOpened} onClick={toggleDesktop} visibleFrom="sm" size="sm" />
             <Text fw={700} size="lg" c="teal.6">
-              Aquarium Manager
+              {t('Aquarium Manager')}
             </Text>
           </Group>
         </Group>
@@ -89,7 +92,7 @@ function App() {
               }}
             >
               <link.icon size={20} />
-              <Text size="sm" fw={isActive ? 600 : 400}>{link.label}</Text>
+              <Text size="sm" fw={isActive ? 600 : 400}>{t(link.label)}</Text>
             </UnstyledButton>
           );
         })}

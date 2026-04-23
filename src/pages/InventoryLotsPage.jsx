@@ -9,7 +9,7 @@ import { IconPlus, IconAlertTriangle, IconSearch } from '@tabler/icons-react';
 import { inventoryLotsApi } from '../api/inventoryLots';
 import { speciesApi } from '../api/species';
 import { suppliersApi } from '../api/suppliers';
-
+import { useTranslation } from 'react-i18next';
 function InventoryLotsPage() {
   const [lots, setLots] = useState([]);
   const [species, setSpecies] = useState([]);
@@ -19,7 +19,7 @@ function InventoryLotsPage() {
   const [, { open, close }] = useDisclosure(false);
   const [mortalityOpened, { open: openMortality, close: closeMortality }] = useDisclosure(false);
   const [selectedLot, setSelectedLot] = useState(null);
-
+  const {t, i18n} = useTranslation();
   const [formData, setFormData] = useState({
     SpeciesId: null,
     SupplierId: null,
@@ -118,9 +118,9 @@ function InventoryLotsPage() {
 
   const getStockStatus = (lot) => {
     const stock = lot.CurrentStock || 0;
-    if (stock === 0) return { label: 'Empty', color: 'red' };
-    if (stock < 10) return { label: 'Low', color: 'yellow' };
-    return { label: 'Available', color: 'green' };
+    if (stock === 0) return { label: t('Empty'), color: 'red' };
+    if (stock < 10) return { label: t('Low'), color: 'yellow' };
+    return { label: t('Available'), color: 'green' };
   };
 
   const speciesMap = {};
@@ -158,23 +158,23 @@ function InventoryLotsPage() {
     <Box>
       <Group justify="space-between" mb="lg">
         <Box>
-          <Text size="xl" fw={700}>Inventory</Text>
-          <Text size="sm" c="dimmed">{filteredLots.length} lots tracked</Text>
+          <Text size="xl" fw={700}>{t('Inventory')}</Text>
+          <Text size="sm" c="dimmed">{filteredLots.length} {t('lots tracked')}</Text>
         </Box>
         <Button leftSection={<IconPlus size={16} />} onClick={open}>
-          Create Lot
+          {t('Create Lot')}
         </Button>
       </Group>
 
       <Tabs defaultValue="list">
         <Tabs.List mb="md">
-          <Tabs.Tab value="list">Inventory Lots</Tabs.Tab>
-          <Tabs.Tab value="create">Create Lot</Tabs.Tab>
+          <Tabs.Tab value="list">{t('Inventory Lots')}</Tabs.Tab>
+          <Tabs.Tab value="create">{t('Create Lot')}</Tabs.Tab>
         </Tabs.List>
 
         <Tabs.Panel value="list">
           <TextInput
-            placeholder="Search lots..."
+            placeholder={t('Search lots...')}
             leftSection={<IconSearch size={16} />}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -185,13 +185,13 @@ function InventoryLotsPage() {
           <Table>
             <Table.Thead>
               <Table.Tr>
-                <Table.Th>Species</Table.Th>
-                <Table.Th>Supplier</Table.Th>
-                <Table.Th>Arrival Date</Table.Th>
-                <Table.Th>Initial Qty</Table.Th>
-                <Table.Th>Current Stock</Table.Th>
-                <Table.Th>Status</Table.Th>
-                <Table.Th>Actions</Table.Th>
+                <Table.Th>{t('Species')}</Table.Th>
+                <Table.Th>{t('Supplier')}</Table.Th>
+                <Table.Th>{t('Arrival Date')}</Table.Th>
+                <Table.Th>{t('Initial Qty')}</Table.Th>
+                <Table.Th>{t('Current Stock')}</Table.Th>
+                <Table.Th>{t('Status')}</Table.Th>
+                <Table.Th>{t('Actions')}</Table.Th>
               </Table.Tr>
             </Table.Thead>
             <Table.Tbody>{rows}</Table.Tbody>

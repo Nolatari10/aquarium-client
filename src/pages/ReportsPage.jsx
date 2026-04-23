@@ -1,16 +1,21 @@
 import { useState } from 'react';
-import { Tabs, Card, Text, Table, Group, Badge, Button, TextInput, Box, SimpleGrid, Stack, Paper } from '@mantine/core';
+import { Text, Tabs, Card, Table, Group, Badge, Button, TextInput, Box, SimpleGrid, Stack, Paper } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { reportsApi } from '../api/reports';
 import ExportCSV from '../components/report/ExportCSV';
-
+import ExportPDF from '../components/report/ExportPDF';
+import { useTranslation } from 'react-i18next';
 function ReportsPage() {
+  const { t, i18n } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [stockReport, setStockReport] = useState(null);
   const [mortalityReport, setMortalityReport] = useState(null);
   const [salesReport, setSalesReport] = useState(null);
   const [valuationReport, setValuationReport] = useState(null);
-
+  //Load downlaodable buttons only when report is loaded to avoid confusion
+  const [showExportReports, setShowExportReports] = useState(false);
+  const [showExportCSV, setShowExportCSV] = useState(false);
+  const [showExportPDF, setShowExportPDF] = useState(false);
   const [mortalityFilters, setMortalityFilters] = useState({
     startDate: '',
     endDate: '',
@@ -21,20 +26,27 @@ function ReportsPage() {
     startDate: '',
     endDate: ''
   });
-
+  const handleDownloadReport = () => {
+    //To show export buttons only after report is loaded, we can use the same function to toggle visibility when report data is set
+    setShowExportCSV(true);
+    setShowExportPDF(true);
+  }
+ 
   const loadStockReport = async () => {
     try {
       setLoading(true);
       const response = await reportsApi.getStockReport();
       const headers = [
-        { label: 'Species', key: 'CommonName' },
-        { label: 'Category', key: 'Category' },
-        { label: 'Current Stock', key: 'CurrentStock' },
-        { label: 'Cost Value', key: 'TotalCostValue' }
+        { label: t('Species'), key: 'Species' },
+        { label: t('Category'), key: 'Category' },
+        { label: t('Current Stock'), key: 'CurrentStock' },
+        { label: t('Cost Value'), key: 'TotalCostValue' }
       ];
       setStockReport({ ...response.data, headers });
+      setShowExportReports(true);
+      setShowExportCSV(false);
     } catch {
-      notifications.show({ title: 'Error', message: 'Failed to load stock report', color: 'red' });
+      notifications.show({ title: 'Error', message: t('Failed to load stock report'), color: 'red' });
     } finally {
       setLoading(false);
     }
@@ -50,7 +62,7 @@ function ReportsPage() {
       const response = await reportsApi.getMortalityReport(params);
       setMortalityReport(response.data);
     } catch {
-      notifications.show({ title: 'Error', message: 'Failed to load mortality report', color: 'red' });
+      notifications.show({ title: 'Error', message: t('Failed to load mortality report'), color: 'red' });
     } finally {
       setLoading(false);
     }
@@ -58,7 +70,7 @@ function ReportsPage() {
 
   const loadSalesReport = async () => {
     if (!salesFilters.startDate || !salesFilters.endDate) {
-      notifications.show({ title: 'Error', message: 'Select date range', color: 'red' });
+      notifications.show({ title: 'Error', message: t('Select date range'), color: 'red' });
       return;
     }
     try {
@@ -66,7 +78,7 @@ function ReportsPage() {
       const response = await reportsApi.getSalesReport(salesFilters.startDate, salesFilters.endDate);
       setSalesReport(response.data);
     } catch {
-      notifications.show({ title: 'Error', message: 'Failed to load sales report', color: 'red' });
+      notifications.show({ title: 'Error', message: t('Failed to load sales report'), color: 'red' });
     } finally {
       setLoading(false);
     }
@@ -78,7 +90,7 @@ function ReportsPage() {
       const response = await reportsApi.getInventoryValuation();
       setValuationReport(response.data);
     } catch {
-      notifications.show({ title: 'Error', message: 'Failed to load valuation report', color: 'red' });
+      notifications.show({ title: 'Error', message: t('Failed to load valuation report'), color: 'red' });
     } finally {
       setLoading(false);
     }
@@ -86,29 +98,46 @@ function ReportsPage() {
 
   return (
     <Box>
-      <Text size="xl" fw={700} mb="lg">Reports</Text>
+      <Text size="xl" fw={700} mb="lg">{t('Reports')}</Text>
 
       <Tabs defaultValue="stock" keepMounted={false}>
         <Tabs.List mb="lg">
-          <Tabs.Tab value="stock">Stock</Tabs.Tab>
-          <Tabs.Tab value="mortality">Mortality</Tabs.Tab>
-          <Tabs.Tab value="sales">Sales</Tabs.Tab>
-          <Tabs.Tab value="valuation">Valuation</Tabs.Tab>
+          <Tabs.Tab value="stock">{t('Stock')}</Tabs.Tab>
+          <Tabs.Tab value="mortality">{t('Mortality')}</Tabs.Tab>
+          <Tabs.Tab value="sales">{t('Sales')}</Tabs.Tab>
+          <Tabs.Tab value="valuation">{t('Valuation')}</Tabs.Tab>
         </Tabs.List>
 
         <Tabs.Panel value="stock">
           <Stack gap="lg">
             <Group justify="space-between">
               <Button onClick={loadStockReport} loading={loading} variant="light">
-                Load Stock Report
+                {t('Load Stock Report')}
               </Button>
               {stockReport && (
+                
+                <Button onClick={handleDownloadReport} loading={loading} variant="light">
+                  {t('Export Report')}
+                </Button>
+              )}
+              {
+                showExportCSV && (
                 <ExportCSV
                   data={stockReport.Items || []}
                   fileName="stock_report.csv"
                   headers={stockReport.headers || []}
-                />
-              )}
+                />               )
+              }
+              {
+                showExportPDF && (
+                   <ExportPDF
+                   data={stockReport.Items}
+                   fileName="Stock Report.pdf"
+                   headers={stockReport.headers}
+                />    
+                )
+              }   
+                
             </Group>
 
             {stockReport && (

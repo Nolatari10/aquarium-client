@@ -2,8 +2,9 @@ import { useState } from 'react';
 import { Modal, Button, Group, Text, Stack } from '@mantine/core';
 import { IconDownload } from '@tabler/icons-react';
 import { CSVLink } from 'react-csv';
-
+import { useTranslation } from 'react-i18next';
 const ExportCSV = ({ data, fileName, headers }) => {
+  const { t, i18n } = useTranslation();
   const [opened, setOpened] = useState(false);
 
   const handleConfirm = () => {
@@ -19,7 +20,7 @@ const ExportCSV = ({ data, fileName, headers }) => {
         leftSection={<IconDownload size={16} />}
         onClick={() => setOpened(true)}
       >
-        Export CSV
+        {t('Export CSV')}
       </Button>
 
       <Modal

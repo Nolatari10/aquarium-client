@@ -5,8 +5,9 @@ import { IconFish, IconPackage, IconShoppingCart, IconAlertTriangle, IconPlus, I
 import { catalogApi } from '../api/catalog';
 import { salesApi } from '../api/sales';
 import { reportsApi } from '../api/reports';
-
+import { useTranslation } from 'react-i18next';
 function DashboardPage() {
+  const { t, i18n } = useTranslation();
   const [stats, setStats] = useState({
     totalSpecies: 0,
     totalStock: 0,
@@ -50,7 +51,7 @@ function DashboardPage() {
 
       setRecentSales(salesData.slice(-5).reverse());
     } catch {
-      console.error('Error loading dashboard');
+      console.error(t('Error loading dashboard'));
     } finally {
       setLoading(false);
     }
@@ -58,48 +59,48 @@ function DashboardPage() {
 
   const kpiCards = [
     {
-      title: 'Total Species',
+      title: t('Total Species'),
       value: stats.totalSpecies,
       icon: IconFish,
       color: 'teal',
-      description: 'Active species in catalog'
+      description: t('Active species in catalog')
     },
     {
-      title: 'Total Stock',
+      title: t('Total Stock'),
       value: stats.totalStock,
       icon: IconPackage,
       color: 'green',
-      description: 'Units across all inventory'
+      description: t('Units across all inventory')
     },
     {
-      title: 'Total Sales',
+      title: t('Total Sales'),
       value: stats.recentSales,
       icon: IconShoppingCart,
       color: 'violet',
-      description: 'Transactions recorded'
+      description: t('Transactions recorded')
     },
     {
-      title: 'Revenue',
+      title: t('Revenue'),
       value: `$${stats.totalRevenue.toFixed(2)}`,
       icon: IconPackage,
       color: 'blue',
-      description: 'Total sales revenue'
+      description: t('Total sales revenue')
     }
   ];
 
   const quickActions = [
-    { label: 'Add Species', to: '/species', color: 'teal' },
-    { label: 'New Inventory', to: '/inventory', color: 'green' },
-    { label: 'Record Sale', to: '/sales', color: 'violet' },
-    { label: 'View Reports', to: '/reports', color: 'blue' },
+    { label: t('Add Species'), to: '/species', color: 'teal' },
+    { label: t('New Inventory'), to: '/inventory', color: 'green' },
+    { label: t('Record Sale'), to: '/sales', color: 'violet' },
+    { label: t('View Reports'), to: '/reports', color: 'blue' },
   ];
 
   return (
     <Box>
       <Group justify="space-between" mb="xl">
         <Box>
-          <Title order={2} mb={4}>Dashboard</Title>
-          <Text c="dimmed" size="sm">Welcome to your Aquarium Manager</Text>
+          <Title order={2} mb={4}>{t('Dashboard')}</Title>
+          <Text c="dimmed" size="sm">{t('Welcome to your Aquarium Manager')}</Text>
         </Box>
       </Group>
 
@@ -120,7 +121,7 @@ function DashboardPage() {
 
       <SimpleGrid cols={{ base: 1, lg: 2 }} spacing="lg">
         <Card padding="lg" radius="md" withBorder>
-          <Text fw={700} mb="md">Quick Actions</Text>
+          <Text fw={700} mb="md">{t('Quick Actions')}</Text>
           <SimpleGrid cols={2} spacing="sm">
             {quickActions.map((action) => (
               <Button
@@ -141,7 +142,7 @@ function DashboardPage() {
               <Group gap="sm">
                 <IconAlertTriangle size={20} color="var(--mantine-color-orange-6)" />
                 <Box>
-                  <Text size="sm" fw={500}>Low Stock Alert</Text>
+                  <Text size="sm" fw={500}>{t('Low Stock Alert')}</Text>
                   <Text size="xs" c="dimmed">{stats.lowStockCount} species with low stock levels</Text>
                 </Box>
               </Group>
@@ -151,9 +152,9 @@ function DashboardPage() {
 
         <Card padding="lg" radius="md" withBorder>
           <Group justify="space-between" mb="md">
-            <Text fw={700}>Recent Sales</Text>
+            <Text fw={700}>{t('Recent Sales')}</Text>
             <Button variant="subtle" size="xs" onClick={() => navigate('/sales')}>
-              View All
+              {t('View All')}
             </Button>
           </Group>
 
