@@ -1,4 +1,3 @@
-// ExportPDF.jsx
 import React from "react";
 import {
   Document,
@@ -6,126 +5,258 @@ import {
   Text,
   View,
   StyleSheet,
-  PDFDownloadLink, Image
+  PDFDownloadLink,
 } from "@react-pdf/renderer";
 import { useTranslation } from 'react-i18next';
-import { Button } from '@mantine/core'; // O el botón que estés usando
-// IMPORTA el botón de donde lo estés usando (ej: antd, MUI, tu propio botón)
+import { Button } from '@mantine/core';
+import { formatLabel, formatCellValue } from '../../tools/format';
 
 const styles = StyleSheet.create({
-  page: { padding: 20 },
-  section: { marginBottom: 10 },
-  header: { flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-            marginBottom: 20,
-            borderBottom: "1 solid #ccc",
-    paddingBottom: 10,},
-  logo: {
-    width: 60,
-    height: 60,
+  page: {
+    padding: 30,
+    fontSize: 10,
+    fontFamily: 'Helvetica',
+    lineHeight: 1.4,
+    color: '#111827',
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 20,
+    borderBottom: '2 solid #2563eb',
+    paddingBottom: 12,
+  },
+  headerLeft: {
+    flex: 1,
+  },
+  headerRight: {
+    alignItems: 'flex-end',
+  },
+  companyName: {
+    fontSize: 11,
+    color: '#2563eb',
+    fontFamily: 'Helvetica-Bold',
+    marginBottom: 4,
   },
   title: {
     fontSize: 16,
-    fontWeight: "bold",
+    fontFamily: 'Helvetica-Bold',
   },
-  metaInfo: {
+  subtitle: {
     fontSize: 9,
-    color: "#666",
+    color: '#6b7280',
+    marginTop: 2,
+  },
+  dateLabel: {
+    fontSize: 9,
+    color: '#6b7280',
+    marginBottom: 2,
+  },
+  dateValue: {
+    fontSize: 9,
+    color: '#374151',
+  },
+  tableSection: {
+    marginBottom: 14,
+  },
+  sectionTitle: {
+    fontSize: 11,
+    fontFamily: 'Helvetica-Bold',
+    color: '#374151',
+    marginBottom: 8,
+    paddingBottom: 4,
+    borderBottom: '1 solid #e5e7eb',
   },
   table: {
-    marginTop: 10,
     borderWidth: 1,
-    borderColor: "#ddd",
+    borderColor: '#d1d5db',
   },
   tableHeader: {
-    flexDirection: "row",
-    backgroundColor: "#f0f0f0",
+    flexDirection: 'row',
+    backgroundColor: '#f3f4f6',
+    borderBottom: '1 solid #d1d5db',
   },
   tableHeaderCell: {
     flex: 1,
-    padding: 6,
-    fontWeight: "bold",
+    padding: 5,
+    fontSize: 8,
+    fontFamily: 'Helvetica-Bold',
+    color: '#374151',
+    borderRight: '1 solid #d1d5db',
+  },
+  tableHeaderCellLast: {
+    flex: 1,
+    padding: 5,
+    fontSize: 8,
+    fontFamily: 'Helvetica-Bold',
+    color: '#374151',
   },
   tableRow: {
-    flexDirection: "row",
-    borderTopWidth: 1,
-    borderTopColor: "#eee",
+    flexDirection: 'row',
+    borderBottom: '1 solid #e5e7eb',
+  },
+  tableRowEven: {
+    backgroundColor: '#f9fafb',
   },
   tableCell: {
     flex: 1,
-    padding: 6,
+    padding: 5,
+    fontSize: 8,
+    color: '#4b5563',
+    borderRight: '1 solid #e5e7eb',
+  },
+  tableCellLast: {
+    flex: 1,
+    padding: 5,
+    fontSize: 8,
+    color: '#4b5563',
+  },
+  emptyText: {
+    textAlign: 'center',
+    color: '#9ca3af',
+    padding: 16,
+    fontStyle: 'italic',
   },
   footer: {
-    position: "absolute",
+    position: 'absolute',
     bottom: 20,
     left: 30,
     right: 30,
-    fontSize: 8,
-    color: "#999",
-    textAlign: "center",
-    borderTop: "1 solid #eee",
-    paddingTop: 5,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    borderTop: '1 solid #e5e7eb',
+    paddingTop: 6,
+  },
+  footerText: {
+    fontSize: 7,
+    color: '#9ca3af',
   },
 });
 
-// 1) Componente que define el contenido del PDF
-function StockReportDocument({ data, headers, t }) {
+function parseReportData(data) {
+  const tables = [];
+
+  for (const [key, value] of Object.entries(data)) {
+    if (key === 'headers') continue;
+    if (!Array.isArray(value)) continue;
+
+    const formattedTitle = formatLabel(key);
+    if (value.length > 0 && typeof value[0] === 'object' && value[0] !== null) {
+      const headerKeys = Object.keys(value[0]).filter((k) => !k.endsWith('Id'));
+
+      tables.push({
+        title: formattedTitle,
+        headerKeys,
+        headers: headerKeys.map((k) => formatLabel(k)),
+        rows: value,
+      });
+    } else {
+      tables.push({
+        title: formattedTitle,
+        headerKeys: [],
+        headers: [],
+        rows: [],
+      });
+    }
+  }
+
+  return { tables };
+}
+
+function ReportDocument({ title, subtitle, data, t }) {
+  const { tables } = parseReportData(data);
+  const today = new Date().toLocaleDateString();
+
   return (
     <Document>
-      <Page size="LETTER" style={styles.header}>
-        <View style={styles.section}>
-          <Text>{t("reportTitle")}</Text>
-          <Text style={styles.metaInfo}>{t("reportMetaInfo")}</Text>
-        </View>
-
-        {/* Ejemplo: recorrer headers y data si quieres */}
-        
-        <View style={styles.section}>
-          {headers.map((h) => (
-            <Text key={h.key}>{h.label}</Text>
-          ))}
-        </View>
-        {/* TABLA */}
-        <View style={styles.table}>
-          {/* Encabezados */}
-          <View style={styles.tableHeader}>
-            {headers.map((h) => (
-              <Text key={h.key} style={styles.tableHeaderCell}>
-                {h.label}
-              </Text>
-            ))}
+      <Page size="LETTER" style={styles.page}>
+        <View style={styles.header}>
+          <View style={styles.headerLeft}>
+            <Text style={styles.companyName}>Aquarium Manager</Text>
+            <Text style={styles.title}>{title}</Text>
+            {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
           </View>
+          <View style={styles.headerRight}>
+            <Text style={styles.dateLabel}>{t('Date')}</Text>
+            <Text style={styles.dateValue}>{today}</Text>
+          </View>
+        </View>
 
-          {/* Filas */}
-          {data.map((item, idx) => (
-            <View key={idx} style={styles.tableRow}>
-              {headers.map((h) => (
-                <Text key={h.key} style={styles.tableCell}>
-                  {String(item[h.key] ?? "")}
-                </Text>
-              ))}
-            </View>
-          ))}
+        {tables.map((table, tableIdx) => (
+          <View key={tableIdx} style={styles.tableSection}>
+            <Text style={styles.sectionTitle}>{table.title}</Text>
+            {table.headerKeys.length === 0 ? (
+              <Text style={styles.emptyText}>{t('No data available')}</Text>
+            ) : (
+              <View style={styles.table}>
+                <View style={styles.tableHeader}>
+                  {table.headers.map((h, hIdx) => (
+                    <Text
+                      key={hIdx}
+                      style={
+                        hIdx === table.headers.length - 1
+                          ? styles.tableHeaderCellLast
+                          : styles.tableHeaderCell
+                      }
+                    >
+                      {h}
+                    </Text>
+                  ))}
+                </View>
+                {table.rows.map((row, rowIdx) => (
+                  <View
+                    key={rowIdx}
+                    style={[
+                      styles.tableRow,
+                      rowIdx % 2 === 1 && styles.tableRowEven,
+                    ]}
+                  >
+                    {table.headerKeys.map((key, colIdx) => (
+                      <Text
+                        key={colIdx}
+                        style={
+                          colIdx === table.headerKeys.length - 1
+                            ? styles.tableCellLast
+                            : styles.tableCell
+                        }
+                      >
+                        {formatCellValue(row[key], key)}
+                      </Text>
+                    ))}
+                  </View>
+                ))}
+              </View>
+            )}
+          </View>
+        ))}
+
+        <View fixed style={styles.footer}>
+          <Text
+            style={styles.footerText}
+            render={({ pageNumber, totalPages }) =>
+              `${t('Page')} ${pageNumber} ${t('of')} ${totalPages}`
+            }
+          />
+          <Text style={styles.footerText}>
+            {t('Generated by Aquarium Manager')}
+          </Text>
         </View>
       </Page>
     </Document>
   );
 }
 
-// 2) Componente que muestra el botón y usa PDFDownloadLink
-function ExportPDF({ data, fileName, headers }) {
-
-  const { t, i18n} = useTranslation();
+function ExportPDF({ data, title, subtitle, fileName }) {
+  const { t } = useTranslation();
 
   return (
     <PDFDownloadLink
-      document={<StockReportDocument data={data} headers={headers} t={t} />}
+      document={<ReportDocument title={title} subtitle={subtitle} data={data} t={t} />}
       fileName={fileName}
     >
       {({ loading }) => (
-        <Button loading={loading}>
-          {t("Export PDF")}
+        <Button loading={loading} variant="light" color="teal" size="sm">
+          {t('Export PDF')}
         </Button>
       )}
     </PDFDownloadLink>
