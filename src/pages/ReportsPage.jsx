@@ -5,17 +5,15 @@ import { reportsApi } from '../api/reports';
 import ExportCSV from '../components/report/ExportCSV';
 import ExportPDF from '../components/report/ExportPDF';
 import { useTranslation } from 'react-i18next';
+
 function ReportsPage() {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [stockReport, setStockReport] = useState(null);
   const [mortalityReport, setMortalityReport] = useState(null);
   const [salesReport, setSalesReport] = useState(null);
   const [valuationReport, setValuationReport] = useState(null);
-  //Load downlaodable buttons only when report is loaded to avoid confusion
-  const [showExportReports, setShowExportReports] = useState(false);
-  const [showExportCSV, setShowExportCSV] = useState(false);
-  const [showExportPDF, setShowExportPDF] = useState(false);
+
   const [mortalityFilters, setMortalityFilters] = useState({
     startDate: '',
     endDate: '',
@@ -26,32 +24,20 @@ function ReportsPage() {
     startDate: '',
     endDate: ''
   });
-  const handleDownloadReport = () => {
-    //To show export buttons only after report is loaded, we can use the same function to toggle visibility when report data is set
-    setShowExportCSV(true);
-    setShowExportPDF(true);
-  }
- 
+
   const loadStockReport = async () => {
     try {
       setLoading(true);
       const response = await reportsApi.getStockReport();
-      const headers = [
-        { label: t('Species'), key: 'Species' },
-        { label: t('Category'), key: 'Category' },
-        { label: t('Current Stock'), key: 'CurrentStock' },
-        { label: t('Cost Value'), key: 'TotalCostValue' }
-      ];
-      setStockReport({ ...response.data, headers });
-      setShowExportReports(true);
-      setShowExportCSV(false);
+      setStockReport(response.data);
+      console.log('Stock Report:', response.data);
     } catch {
       notifications.show({ title: 'Error', message: t('Failed to load stock report'), color: 'red' });
     } finally {
       setLoading(false);
     }
   };
-  
+
   const loadMortalityReport = async () => {
     try {
       setLoading(true);
@@ -115,29 +101,18 @@ function ReportsPage() {
                 {t('Load Stock Report')}
               </Button>
               {stockReport && (
-                
-                <Button onClick={handleDownloadReport} loading={loading} variant="light">
-                  {t('Export Report')}
-                </Button>
+                <Group gap="xs">
+                  <ExportCSV
+                    data={stockReport.Items || []}
+                    fileName="stock_report.csv"
+                  />
+                  <ExportPDF
+                    data={stockReport}
+                    title={t('Stock Report')}
+                    fileName="Stock_Report.pdf"
+                  />
+                </Group>
               )}
-              {
-                showExportCSV && (
-                <ExportCSV
-                  data={stockReport.Items || []}
-                  fileName="stock_report.csv"
-                  headers={stockReport.headers || []}
-                />               )
-              }
-              {
-                showExportPDF && (
-                   <ExportPDF
-                   data={stockReport.Items}
-                   fileName="Stock Report.pdf"
-                   headers={stockReport.headers}
-                />    
-                )
-              }   
-                
             </Group>
 
             {stockReport && (
@@ -200,9 +175,24 @@ function ReportsPage() {
                     onChange={(e) => setMortalityFilters({ ...mortalityFilters, endDate: e.target.value })}
                   />
                 </Group>
-                <Button onClick={loadMortalityReport} loading={loading} variant="light">
-                  Load Report
-                </Button>
+                <Group justify="space-between">
+                  <Button onClick={loadMortalityReport} loading={loading} variant="light">
+                    Load Report
+                  </Button>
+                  {mortalityReport && (
+                    <Group gap="xs">
+                      <ExportCSV
+                        data={mortalityReport.Summaries || []}
+                        fileName="mortality_report.csv"
+                      />
+                      <ExportPDF
+                        data={mortalityReport}
+                        title={t('Mortality Report')}
+                        fileName="Mortality_Report.pdf"
+                      />
+                    </Group>
+                  )}
+                </Group>
               </Stack>
             </Paper>
 
@@ -261,9 +251,27 @@ function ReportsPage() {
                     onChange={(e) => setSalesFilters({ ...salesFilters, endDate: e.target.value })}
                   />
                 </Group>
-                <Button onClick={loadSalesReport} loading={loading} variant="light">
-                  Load Report
-                </Button>
+                <Group justify="space-between">
+                  <Button onClick={loadSalesReport} loading={loading} variant="light">
+                    Load Report
+                  </Button>
+                  {salesReport && (
+                    <Group gap="xs">
+                      <ExportCSV
+                        data={salesReport.Sales || []}
+                        fileName="sales_report.csv"
+                      />
+                      <ExportPDF
+                        data={salesReport}
+                        title={t('Sales Report')}
+                        subtitle={salesFilters.startDate && salesFilters.endDate
+                          ? `${salesFilters.startDate} — ${salesFilters.endDate}`
+                          : undefined}
+                        fileName="Sales_Report.pdf"
+                      />
+                    </Group>
+                  )}
+                </Group>
               </Stack>
             </Paper>
 
@@ -336,6 +344,19 @@ function ReportsPage() {
               <Button onClick={loadValuationReport} loading={loading} variant="light">
                 Load Valuation Report
               </Button>
+              {valuationReport && (
+                <Group gap="xs">
+                  <ExportCSV
+                    data={valuationReport.ByCategory || []}
+                    fileName="valuation_report.csv"
+                  />
+                  <ExportPDF
+                    data={valuationReport}
+                    title={t('Valuation Report')}
+                    fileName="Valuation_Report.pdf"
+                  />
+                </Group>
+              )}
             </Group>
 
             {valuationReport && (

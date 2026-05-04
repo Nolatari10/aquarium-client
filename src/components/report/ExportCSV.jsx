@@ -1,11 +1,27 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Modal, Button, Group, Text, Stack } from '@mantine/core';
 import { IconDownload } from '@tabler/icons-react';
 import { CSVLink } from 'react-csv';
 import { useTranslation } from 'react-i18next';
+import { formatLabel } from '../../tools/format';
+
+function useDynamicHeaders(data, userHeaders) {
+  return useMemo(() => {
+    if (userHeaders && userHeaders.length > 0) return userHeaders;
+    if (!data || data.length === 0) return [];
+    const firstItem = data[0];
+    if (!firstItem || typeof firstItem !== 'object') return [];
+    return Object.keys(firstItem).map((key) => ({
+      label: formatLabel(key),
+      key,
+    }));
+  }, [data, userHeaders]);
+}
+
 const ExportCSV = ({ data, fileName, headers }) => {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const [opened, setOpened] = useState(false);
+  const dynamicHeaders = useDynamicHeaders(data, headers);
 
   const handleConfirm = () => {
     setOpened(false);
@@ -43,7 +59,7 @@ const ExportCSV = ({ data, fileName, headers }) => {
             </Button>
             <CSVLink
               data={data || []}
-              headers={headers || []}
+              headers={dynamicHeaders}
               filename={fileName || 'report.csv'}
               target="_blank"
               onClick={handleConfirm}
