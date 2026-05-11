@@ -1,6 +1,6 @@
-import { AppShell, Burger, Group, Text, UnstyledButton } from '@mantine/core';
+import { AppShell, Burger, Group, Text, UnstyledButton, Button, Badge, ActionIcon, useMantineColorScheme } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
-import { Routes, Route, Link, useLocation } from 'react-router-dom';
+import { Routes, Route, Link, useLocation, Navigate } from 'react-router-dom';
 import {
   IconDashboard,
   IconFish,
@@ -8,7 +8,10 @@ import {
   IconPackage,
   IconShoppingCart,
   IconBook,
-  IconReport
+  IconReport,
+  IconLogout,
+  IconSun,
+  IconMoon,
 } from '@tabler/icons-react';
 import DashboardPage from './pages/DashboardPage';
 import SpeciesPage from './pages/SpeciesPage';
@@ -17,10 +20,12 @@ import InventoryLotsPage from './pages/InventoryLotsPage';
 import SalesPage from './pages/SalesPage';
 import CatalogPage from './pages/CatalogPage';
 import ReportsPage from './pages/ReportsPage';
+import LoginPage from './pages/LoginPage';
+import { useAuth } from './hooks/useAuth';
+import { RequireAuth } from './components/auth/RequireAuth';
 import { useTranslation } from 'react-i18next';
 
 const navLinks = [
-  
   { icon: IconDashboard, label: 'Dashboard', to: '/' },
   { icon: IconFish, label: 'Species', to: '/species' },
   { icon: IconUsers, label: 'Suppliers', to: '/suppliers' },
@@ -32,6 +37,8 @@ const navLinks = [
 
 function App() {
   const { t, i18n } = useTranslation();
+  const { isAuthenticated, user, logout } = useAuth();
+  const { colorScheme, toggleColorScheme } = useMantineColorScheme();
   const [mobileOpened, { toggle: toggleMobile, close: closeMobile }] = useDisclosure();
   const [desktopOpened, { toggle: toggleDesktop }] = useDisclosure(true);
   const location = useLocation();
@@ -39,6 +46,15 @@ function App() {
   const handleNavClick = () => {
     closeMobile();
   };
+
+  if (!isAuthenticated) {
+    return (
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="*" element={<Navigate to="/login" replace />} />
+      </Routes>
+    );
+  }
 
   return (
     <AppShell
@@ -58,6 +74,28 @@ function App() {
             <Text fw={700} size="lg" c="teal.6">
               {t('Aquarium Manager')}
             </Text>
+          </Group>
+          <Group gap="sm">
+            <Badge variant="light" color={user?.role === 'Owner' ? 'teal' : 'blue'}>
+              {user?.role || ''}
+            </Badge>
+            <ActionIcon
+              variant="default"
+              onClick={toggleColorScheme}
+              size="lg"
+              aria-label="Toggle color scheme"
+            >
+              {colorScheme === 'dark' ? <IconSun size={18} /> : <IconMoon size={18} />}
+            </ActionIcon>
+            <Button
+              variant="subtle"
+              color="gray"
+              size="sm"
+              leftSection={<IconLogout size={16} />}
+              onClick={logout}
+            >
+              Logout
+            </Button>
           </Group>
         </Group>
       </AppShell.Header>
@@ -85,7 +123,7 @@ function App() {
                 transition: 'background-color 0.15s ease',
               }}
               onMouseEnter={(e) => {
-                if (!isActive) e.currentTarget.style.backgroundColor = 'var(--mantine-color-gray-1)';
+                if (!isActive) e.currentTarget.style.backgroundColor = colorScheme === 'dark' ? 'var(--mantine-color-dark-4)' : 'var(--mantine-color-gray-1)';
               }}
               onMouseLeave={(e) => {
                 if (!isActive) e.currentTarget.style.backgroundColor = 'transparent';
@@ -100,13 +138,14 @@ function App() {
 
       <AppShell.Main>
         <Routes>
-          <Route path="/" element={<DashboardPage />} />
-          <Route path="/species" element={<SpeciesPage />} />
-          <Route path="/suppliers" element={<SuppliersPage />} />
-          <Route path="/inventory" element={<InventoryLotsPage />} />
-          <Route path="/sales" element={<SalesPage />} />
-          <Route path="/catalog" element={<CatalogPage />} />
-          <Route path="/reports" element={<ReportsPage />} />
+          <Route path="/" element={<RequireAuth><DashboardPage /></RequireAuth>} />
+          <Route path="/species" element={<RequireAuth><SpeciesPage /></RequireAuth>} />
+          <Route path="/suppliers" element={<RequireAuth><SuppliersPage /></RequireAuth>} />
+          <Route path="/inventory" element={<RequireAuth><InventoryLotsPage /></RequireAuth>} />
+          <Route path="/sales" element={<RequireAuth><SalesPage /></RequireAuth>} />
+          <Route path="/catalog" element={<RequireAuth><CatalogPage /></RequireAuth>} />
+          <Route path="/reports" element={<RequireAuth><ReportsPage /></RequireAuth>} />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </AppShell.Main>
     </AppShell>

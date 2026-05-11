@@ -10,12 +10,15 @@ import './index.css'
 
 import App from './App.jsx'
 import theme from './theme'
+import { AuthProvider } from './contexts/AuthContext.jsx'
 
 createRoot(document.getElementById('root')).render(
   <BrowserRouter>
-    <MantineProvider theme={theme} withGlobalStyles withNormalizeCSS>
+    <MantineProvider theme={theme} defaultColorScheme="light">
       <Notifications />
-      <App />
+      <AuthProvider>
+        <App />
+      </AuthProvider>
     </MantineProvider>
   </BrowserRouter>,
 )
