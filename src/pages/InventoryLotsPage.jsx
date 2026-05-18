@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import {
   Button, Table, Modal, TextInput, Select, Textarea, Group, Text,
-  ActionIcon, Box, Badge, Tabs, NumberInput, Stack, Paper
+  ActionIcon, Box, Badge, Tabs, NumberInput, Stack, Paper, Pagination, Loader
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
@@ -19,7 +19,11 @@ function InventoryLotsPage() {
   const [activeTab, setActiveTab] = useState('list');
   const [mortalityOpened, { open: openMortality, close: closeMortality }] = useDisclosure(false);
   const [selectedLot, setSelectedLot] = useState(null);
-  const {t, i18n} = useTranslation();
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [listLoading, setListLoading] = useState(false);
+  const pageSize = 20;
+  const { t } = useTranslation();
   const [formData, setFormData] = useState({
     SpeciesName: '',
     SpeciesId: null,
@@ -39,23 +43,38 @@ function InventoryLotsPage() {
   });
 
   useEffect(() => {
-    loadData();
+    loadDropdowns();
+    loadLots(1);
   }, []);
 
-  const loadData = async () => {
+  useEffect(() => { loadLots(page); }, [page]);
+
+  const loadDropdowns = async () => {
     try {
-      const [speciesResult, suppliersResult, inventoryResult] = await Promise.allSettled([
-        speciesApi.getAll(),
+      const [speciesResult, suppliersResult] = await Promise.allSettled([
+        speciesApi.getAll(1, 1000),
         suppliersApi.getAll(),
-        inventoryLotsApi.getAll()
       ]);
-      if (speciesResult.status === 'fulfilled') setSpecies(speciesResult.value.data);
+      if (speciesResult.status === 'fulfilled') setSpecies(speciesResult.value.data.Items || []);
       if (suppliersResult.status === 'fulfilled') setSuppliers(suppliersResult.value.data);
-      if (inventoryResult.status === 'fulfilled') setLots(inventoryResult.value.data);
+    } catch { /* ignore */ }
+  };
+
+  const loadLots = async (p) => {
+    try {
+      setListLoading(true);
+      const result = await inventoryLotsApi.getAll(p, pageSize);
+      const data = result.data;
+      setLots(data.Items || []);
+      setTotalPages(data.TotalPages || 1);
     } catch {
       notifications.show({ title: 'Error', message: 'Failed to load data', color: 'red' });
+    } finally {
+      setListLoading(false);
     }
   };
+
+  const refreshLots = () => { setPage(1); loadLots(1); };
 
   const handleSubmit = async () => {
     try {
@@ -64,7 +83,7 @@ function InventoryLotsPage() {
       notifications.show({ title: 'Success', message: 'Lot created', color: 'green' });
       setActiveTab('list');
       resetForm();
-      loadData();
+      refreshLots;
     } catch (e) {
       notifications.show({
         title: 'Error',
@@ -88,7 +107,7 @@ function InventoryLotsPage() {
       notifications.show({ title: 'Success', message: 'Mortality registered', color: 'green' });
       closeMortality();
       setMortalityData({ Date: new Date().toISOString().split('T')[0], Quantity: 0, Cause: 'Disease', Notes: '' });
-      loadData();
+      refreshLots;
     } catch {
       notifications.show({
         title: 'Error',
@@ -191,20 +210,29 @@ function InventoryLotsPage() {
             style={{ maxWidth: 320 }}
           />
 
-          <Table>
-            <Table.Thead>
-              <Table.Tr>
-                <Table.Th>{t('Species')}</Table.Th>
-                <Table.Th>{t('Supplier')}</Table.Th>
-                <Table.Th>{t('Arrival Date')}</Table.Th>
-                <Table.Th>{t('Initial Qty')}</Table.Th>
-                <Table.Th>{t('Current Stock')}</Table.Th>
-                <Table.Th>{t('Status')}</Table.Th>
-                <Table.Th>{t('Actions')}</Table.Th>
-              </Table.Tr>
-            </Table.Thead>
-            <Table.Tbody>{rows}</Table.Tbody>
-          </Table>
+          {listLoading ? (
+            <Stack align="center" py="xl"><Loader /></Stack>
+          ) : (
+            <>
+              <Table>
+                <Table.Thead>
+                  <Table.Tr>
+                    <Table.Th>{t('Species')}</Table.Th>
+                    <Table.Th>{t('Supplier')}</Table.Th>
+                    <Table.Th>{t('Arrival Date')}</Table.Th>
+                    <Table.Th>{t('Initial Qty')}</Table.Th>
+                    <Table.Th>{t('Current Stock')}</Table.Th>
+                    <Table.Th>{t('Status')}</Table.Th>
+                    <Table.Th>{t('Actions')}</Table.Th>
+                  </Table.Tr>
+                </Table.Thead>
+                <Table.Tbody>{rows}</Table.Tbody>
+              </Table>
+              <Group justify="center" mt="md">
+                <Pagination total={totalPages} value={page} onChange={(p) => setPage(p)} />
+              </Group>
+            </>
+          )}
         </Tabs.Panel>
 
         <Tabs.Panel value="create">

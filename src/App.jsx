@@ -12,6 +12,7 @@ import {
   IconLogout,
   IconSun,
   IconMoon,
+  IconDroplet,
 } from '@tabler/icons-react';
 import DashboardPage from './pages/DashboardPage';
 import SpeciesPage from './pages/SpeciesPage';
@@ -21,6 +22,9 @@ import SalesPage from './pages/SalesPage';
 import CatalogPage from './pages/CatalogPage';
 import ReportsPage from './pages/ReportsPage';
 import LoginPage from './pages/LoginPage';
+import TankListPage from './pages/Tanks/TankListPage';
+import TankCreatePage from './pages/Tanks/TankCreatePage';
+import TankDetailPage from './pages/Tanks/TankDetailPage';
 import { useAuth } from './hooks/useAuth';
 import { RequireAuth } from './components/auth/RequireAuth';
 import { useTranslation } from 'react-i18next';
@@ -33,10 +37,11 @@ const navLinks = [
   { icon: IconShoppingCart, label: 'Sales', to: '/sales' },
   { icon: IconBook, label: 'Catalog', to: '/catalog' },
   { icon: IconReport, label: 'Reports', to: '/reports' },
+  { icon: IconDroplet, label: 'Tanks', to: '/tanks' },
 ];
 
 function App() {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const { isAuthenticated, user, logout } = useAuth();
   const { colorScheme, toggleColorScheme } = useMantineColorScheme();
   const [mobileOpened, { toggle: toggleMobile, close: closeMobile }] = useDisclosure();
@@ -76,14 +81,14 @@ function App() {
             </Text>
           </Group>
           <Group gap="sm">
-            <Badge variant="light" color={user?.role === 'Owner' ? 'teal' : 'blue'}>
-              {user?.role || ''}
-            </Badge>
+              <Badge variant="light" color={user?.role === 'Owner' ? 'teal' : 'blue'}>
+                {t(user?.role || '')}
+              </Badge>
             <ActionIcon
               variant="default"
               onClick={toggleColorScheme}
               size="lg"
-              aria-label="Toggle color scheme"
+               aria-label={t('Toggle color scheme')}
             >
               {colorScheme === 'dark' ? <IconSun size={18} /> : <IconMoon size={18} />}
             </ActionIcon>
@@ -94,7 +99,7 @@ function App() {
               leftSection={<IconLogout size={16} />}
               onClick={logout}
             >
-              Logout
+              {t('Logout')}
             </Button>
           </Group>
         </Group>
@@ -120,13 +125,15 @@ function App() {
                 backgroundColor: isActive ? 'var(--mantine-color-teal-6)' : 'transparent',
                 marginBottom: 4,
                 width: '100%',
-                transition: 'background-color 0.15s ease',
+                transition: 'background-color 0.15s ease, transform 0.15s ease',
               }}
               onMouseEnter={(e) => {
                 if (!isActive) e.currentTarget.style.backgroundColor = colorScheme === 'dark' ? 'var(--mantine-color-dark-4)' : 'var(--mantine-color-gray-1)';
+                e.currentTarget.style.transform = 'translateX(4px)';
               }}
               onMouseLeave={(e) => {
                 if (!isActive) e.currentTarget.style.backgroundColor = 'transparent';
+                e.currentTarget.style.transform = '';
               }}
             >
               <link.icon size={20} />
@@ -145,6 +152,9 @@ function App() {
           <Route path="/sales" element={<RequireAuth><SalesPage /></RequireAuth>} />
           <Route path="/catalog" element={<RequireAuth><CatalogPage /></RequireAuth>} />
           <Route path="/reports" element={<RequireAuth><ReportsPage /></RequireAuth>} />
+          <Route path="/tanks" element={<RequireAuth><TankListPage /></RequireAuth>} />
+          <Route path="/tanks/new" element={<RequireAuth><TankCreatePage /></RequireAuth>} />
+          <Route path="/tanks/:id" element={<RequireAuth><TankDetailPage /></RequireAuth>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </AppShell.Main>

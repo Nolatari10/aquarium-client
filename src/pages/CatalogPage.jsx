@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Card, Text, SimpleGrid, Group, Badge, Box, TextInput, Stack } from '@mantine/core';
+import { Card, Text, SimpleGrid, Group, Badge, Box, TextInput, Stack, Pagination, Loader } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { IconSearch } from '@tabler/icons-react';
 import { catalogApi } from '../api/catalog';
@@ -7,24 +7,33 @@ import { useTranslation } from 'react-i18next';
 function CatalogPage() {
   const [catalog, setCatalog] = useState([]);
   const [searchField, setSearchField] = useState('');
-  const {t, i18n} = useTranslation();
-  const loadCatalog = async () => {
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [listLoading, setListLoading] = useState(false);
+  const pageSize = 12;
+  const { t } = useTranslation();
+
+  const loadCatalog = async (p) => {
     try {
-      const response = await catalogApi.getAll();
-      setCatalog(response.data);
+      setListLoading(true);
+      const response = await catalogApi.getAll(p, pageSize);
+      const data = response.data;
+      setCatalog(data.Items || []);
+      setTotalPages(data.TotalPages || 1);
     } catch {
-      notifications.show({ title: 'Error', message: 'Failed to load catalog', color: 'red' });
+      notifications.show({ title: t('Error'), message: t('Failed to load catalog'), color: 'red' });
+    } finally {
+      setListLoading(false);
     }
   };
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    loadCatalog();
-  }, []);
+    loadCatalog(page);
+  }, [page]);
 
   const getStockBadge = (stock) => {
-    if (stock === 0) return <Badge color="red">Out of Stock</Badge>;
-    if (stock < 10) return <Badge color="yellow">{stock} (Low)</Badge>;
+    if (stock === 0) return <Badge color="red">{t('Out of Stock')}</Badge>;
+    if (stock < 10) return <Badge color="yellow">{stock} {t('(Low)')}</Badge>;
     return <Badge color="green">{stock} {t('Available')}</Badge>;
   };
 
@@ -43,7 +52,7 @@ function CatalogPage() {
       <Group justify="space-between" mb="lg">
         <Box>
           <Text size="xl" fw={700}>{t('Catalog')}</Text>
-          <Text size="sm" c="dimmed">{filteredCatalog.length} items with available stock</Text>
+          <Text size="sm" c="dimmed">{filteredCatalog.length} {t('items with available stock')}</Text>
         </Box>
       </Group>
 
@@ -56,8 +65,11 @@ function CatalogPage() {
         style={{ maxWidth: 360 }}
       />
 
-      {filteredCatalog.length > 0 ? (
-        <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} spacing="lg">
+      {listLoading ? (
+        <Stack align="center" py="xl"><Loader /></Stack>
+      ) : filteredCatalog.length > 0 ? (
+        <>
+          <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} spacing="lg">
           {filteredCatalog.map((item) => (
             <Card key={item.SpeciesId} padding="lg" radius="md" withBorder>
               <Group justify="space-between" mb="sm">
@@ -85,16 +97,20 @@ function CatalogPage() {
               <Group justify="space-between">
                 <Text size="sm" c="dimmed">{t('Oldest Lot')}</Text>
                 <Text size="sm" fw={500}>
-                  {item.OldestArrivalDate ? new Date(item.OldestArrivalDate).toLocaleDateString() : 'N/A'}
+                  {item.OldestArrivalDate ? new Date(item.OldestArrivalDate).toLocaleDateString() : t('N/A')}
                 </Text>
               </Group>
             </Card>
           ))}
         </SimpleGrid>
+          <Group justify="center" mt="lg">
+            <Pagination total={totalPages} value={page} onChange={(p) => setPage(p)} />
+          </Group>
+        </>
       ) : (
         <Stack align="center" py="xl">
-          <Text c="dimmed">No species with available stock</Text>
-          <Text size="xs" c="dimmed">Create inventory lots to see them here</Text>
+          <Text c="dimmed">{t('No species with available stock')}</Text>
+          <Text size="xs" c="dimmed">{t('Create inventory lots to see them here')}</Text>
         </Stack>
       )}
     </Box>

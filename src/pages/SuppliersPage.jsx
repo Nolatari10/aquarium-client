@@ -4,8 +4,10 @@ import { useDisclosure } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
 import { IconPlus, IconEdit, IconTrash, IconSearch } from '@tabler/icons-react';
 import { suppliersApi } from '../api/suppliers';
+import { useTranslation } from 'react-i18next';
 
 function SuppliersPage() {
+  const { t } = useTranslation();
   const [suppliers, setSuppliers] = useState([]);
   const [filteredSuppliers, setFilteredSuppliers] = useState([]);
   const [editingSupplier, setEditingSupplier] = useState(null);
@@ -41,7 +43,7 @@ function SuppliersPage() {
       setSuppliers(response.data);
       setFilteredSuppliers(response.data);
     } catch {
-      notifications.show({ title: 'Error', message: 'Failed to load suppliers', color: 'red' });
+      notifications.show({ title: t('Error'), message: t('Failed to load suppliers'), color: 'red' });
     }
   };
 
@@ -50,18 +52,18 @@ function SuppliersPage() {
       setLoading(true);
       if (editingSupplier) {
         await suppliersApi.update(editingSupplier.Id, formData);
-        notifications.show({ title: 'Success', message: 'Supplier updated', color: 'green' });
+        notifications.show({ title: t('Success'), message: t('Supplier updated'), color: 'green' });
       } else {
         await suppliersApi.create(formData);
-        notifications.show({ title: 'Success', message: 'Supplier created', color: 'green' });
+        notifications.show({ title: t('Success'), message: t('Supplier created'), color: 'green' });
       }
       close();
       resetForm();
       loadSuppliers();
     } catch (e) {
       notifications.show({
-        title: 'Error',
-        message: e.response?.data?.ErrorMessage || 'Operation failed',
+        title: t('Error'),
+        message: e.response?.data?.ErrorMessage || t('Operation failed'),
         color: 'red'
       });
     } finally {
@@ -86,10 +88,10 @@ function SuppliersPage() {
     
     try {
       await suppliersApi.delete(id);
-      notifications.show({ title: 'Success', message: 'Supplier deleted', color: 'green' });
+      notifications.show({ title: t('Success'), message: t('Supplier deleted'), color: 'green' });
       loadSuppliers();
     } catch {
-      notifications.show({ title: 'Error', message: 'Failed to delete supplier', color: 'red' });
+      notifications.show({ title: t('Error'), message: t('Failed to delete supplier'), color: 'red' });
     }
   };
 
@@ -125,16 +127,16 @@ function SuppliersPage() {
     <Box>
       <Group justify="space-between" mb="lg">
         <Box>
-          <Text size="xl" fw={700}>Suppliers</Text>
-          <Text size="sm" c="dimmed">{filteredSuppliers.length} suppliers registered</Text>
+          <Text size="xl" fw={700}>suppliers</Text>
+          <Text size="sm" c="dimmed">{filteredSuppliers.length} {t('Suppliers registered')}</Text>
         </Box>
         <Button leftSection={<IconPlus size={16} />} onClick={handleOpen}>
-          Add Supplier
+          {t('Add Supplier')}
         </Button>
       </Group>
 
       <TextInput
-        placeholder="Search suppliers..."
+        placeholder={t('Search suppliers...')}
         leftSection={<IconSearch size={16} />}
         value={search}
         onChange={(e) => setSearch(e.target.value)}
@@ -156,12 +158,12 @@ function SuppliersPage() {
         </Table>
       ) : (
         <Stack align="center" py="xl">
-          <Text c="dimmed">No suppliers found</Text>
-          <Button variant="light" onClick={handleOpen}>Add your first supplier</Button>
+          <Text c="dimmed">{t('No suppliers found')}</Text>
+          <Button variant="light" onClick={handleOpen}>{t('Add your first supplier')}</Button>
         </Stack>
       )}
 
-      <Modal opened={opened} onClose={close} title={editingSupplier ? 'Edit Supplier' : 'Add Supplier'} size="md">
+      <Modal opened={opened} onClose={close} title={editingSupplier ? t('Edit Supplier') : t('Add Supplier')} size="md">
         <form onSubmit={(e) => { e.preventDefault(); handleSubmit(); }}>
           <Stack gap="sm">
             <TextInput
@@ -182,7 +184,7 @@ function SuppliersPage() {
               onChange={(e) => setFormData({ ...formData, Email: e.target.value })}
             />
             <Textarea
-              label="Contact Info"
+              label={t('Contact Info')}
               value={formData.ContactInfo}
               onChange={(e) => setFormData({ ...formData, ContactInfo: e.target.value })}
             />
@@ -192,9 +194,9 @@ function SuppliersPage() {
               onChange={(e) => setFormData({ ...formData, Notes: e.target.value })}
             />
             <Group justify="flex-end" mt="md">
-              <Button variant="default" onClick={close} disabled={loading}>Cancel</Button>
+              <Button variant="default" onClick={close} disabled={loading}>{t('Cancel')}</Button>
               <Button type="submit" loading={loading}>
-                {editingSupplier ? 'Update' : 'Create'}
+                {editingSupplier ? t('Update') : t('Create')}
               </Button>
             </Group>
           </Stack>
