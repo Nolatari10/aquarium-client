@@ -5,6 +5,26 @@ import { CSVLink } from 'react-csv';
 import { useTranslation } from 'react-i18next';
 import { formatLabel } from '../../tools/format';
 
+function sanitizeRow(row) {
+  if (!row || typeof row !== 'object') return row;
+  const sanitized = {};
+  for (const [key, value] of Object.entries(row)) {
+    if (Array.isArray(value)) {
+      sanitized[key] = value.length;
+    } else if (typeof value === 'object' && value !== null) {
+      sanitized[key] = JSON.stringify(value);
+    } else {
+      sanitized[key] = value;
+    }
+  }
+  return sanitized;
+}
+
+function sanitizeData(data) {
+  if (!data || !Array.isArray(data)) return [];
+  return data.map(sanitizeRow);
+}
+
 function useDynamicHeaders(data, userHeaders) {
   return useMemo(() => {
     if (userHeaders && userHeaders.length > 0) return userHeaders;
@@ -58,7 +78,7 @@ const ExportCSV = ({ data, fileName, headers }) => {
               Cancel
             </Button>
             <CSVLink
-              data={data || []}
+              data={sanitizeData(data)}
               headers={dynamicHeaders}
               filename={fileName || 'report.csv'}
               target="_blank"

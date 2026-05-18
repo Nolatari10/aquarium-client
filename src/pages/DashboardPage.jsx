@@ -6,8 +6,15 @@ import { catalogApi } from '../api/catalog';
 import { salesApi } from '../api/sales';
 import { reportsApi } from '../api/reports';
 import { useTranslation } from 'react-i18next';
+
+const kpiStyles = `
+@keyframes kpiEnter {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+`;
 function DashboardPage() {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const [stats, setStats] = useState({
     totalSpecies: 0,
     totalStock: 0,
@@ -26,13 +33,13 @@ function DashboardPage() {
   const loadDashboardData = async () => {
     try {
       const [catalog, sales, stockReport] = await Promise.all([
-        catalogApi.getAll(),
-        salesApi.getAll(),
+        catalogApi.getAll(1, 1000),
+        salesApi.getAll(1, 1000),
         reportsApi.getStockReport()
       ]);
 
-      const salesData = sales.data || [];
-      const catalogData = catalog.data || [];
+      const salesData = sales.data?.Items || [];
+      const catalogData = catalog.data?.Items || [];
       const stockData = stockReport.data || {};
 
       const totalRevenue = salesData.reduce((sum, sale) => {
@@ -97,6 +104,7 @@ function DashboardPage() {
 
   return (
     <Box>
+      <style>{kpiStyles}</style>
       <Group justify="space-between" mb="xl">
         <Box>
           <Title order={2} mb={4}>{t('Dashboard')}</Title>
@@ -105,8 +113,15 @@ function DashboardPage() {
       </Group>
 
       <SimpleGrid cols={{ base: 1, sm: 2, lg: 4 }} spacing="lg" mb="xl">
-        {kpiCards.map((card) => (
-          <Card key={card.title} padding="lg" radius="md" withBorder>
+        {kpiCards.map((card, index) => (
+          <Card key={card.title} padding="lg" radius="md" withBorder style={{
+            animation: `kpiEnter 0.4s ease ${index * 80}ms both`,
+            transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+            cursor: 'default',
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = 'var(--mantine-shadow-md)'; }}
+          onMouseLeave={(e) => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = ''; }}
+          >
             <Group justify="space-between" mb="md">
               <Text size="sm" c="dimmed" fw={500}>{card.title}</Text>
               <card.icon size={24} color={`var(--mantine-color-${card.color}-6)`} />

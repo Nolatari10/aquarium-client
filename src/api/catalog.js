@@ -1,5 +1,5 @@
 import { apiClient } from './apiClient';
 
 export const catalogApi = {
-  getAll: () => apiClient.get('/Catalog'),
+  getAll: (page, pageSize) => apiClient.get('/Catalog', { params: { page, pageSize } }),
 };

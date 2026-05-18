@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import {
   Button, Table, Modal, TextInput, Select, Textarea, Group, Text,
-  ActionIcon, Box, Badge, Tabs, NumberInput, Stack, Paper
+  ActionIcon, Box, Badge, Tabs, NumberInput, Stack, Paper, Pagination, Loader
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
@@ -16,11 +16,16 @@ function InventoryLotsPage() {
   const [suppliers, setSuppliers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
-  const [, { open, close }] = useDisclosure(false);
+  const [activeTab, setActiveTab] = useState('list');
   const [mortalityOpened, { open: openMortality, close: closeMortality }] = useDisclosure(false);
   const [selectedLot, setSelectedLot] = useState(null);
-  const {t, i18n} = useTranslation();
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [listLoading, setListLoading] = useState(false);
+  const pageSize = 20;
+  const { t } = useTranslation();
   const [formData, setFormData] = useState({
+    SpeciesName: '',
     SpeciesId: null,
     SupplierId: null,
     ArrivalDate: new Date().toISOString().split('T')[0],
@@ -38,32 +43,47 @@ function InventoryLotsPage() {
   });
 
   useEffect(() => {
-    loadData();
+    loadDropdowns();
+    loadLots(1);
   }, []);
 
-  const loadData = async () => {
+  useEffect(() => { loadLots(page); }, [page]);
+
+  const loadDropdowns = async () => {
     try {
-      const [speciesRes, suppliersRes, inventoryRes] = await Promise.all([
-        speciesApi.getAll(),
+      const [speciesResult, suppliersResult] = await Promise.allSettled([
+        speciesApi.getAll(1, 1000),
         suppliersApi.getAll(),
-        inventoryLotsApi.getAll()
       ]);
-      setSpecies(speciesRes.data);
-      setSuppliers(suppliersRes.data);
-      setLots(inventoryRes.data);
+      if (speciesResult.status === 'fulfilled') setSpecies(speciesResult.value.data.Items || []);
+      if (suppliersResult.status === 'fulfilled') setSuppliers(suppliersResult.value.data);
+    } catch { /* ignore */ }
+  };
+
+  const loadLots = async (p) => {
+    try {
+      setListLoading(true);
+      const result = await inventoryLotsApi.getAll(p, pageSize);
+      const data = result.data;
+      setLots(data.Items || []);
+      setTotalPages(data.TotalPages || 1);
     } catch {
       notifications.show({ title: 'Error', message: 'Failed to load data', color: 'red' });
+    } finally {
+      setListLoading(false);
     }
   };
+
+  const refreshLots = () => { setPage(1); loadLots(1); };
 
   const handleSubmit = async () => {
     try {
       setLoading(true);
       await inventoryLotsApi.create(formData);
       notifications.show({ title: 'Success', message: 'Lot created', color: 'green' });
-      close();
+      setActiveTab('list');
       resetForm();
-      loadData();
+      refreshLots;
     } catch (e) {
       notifications.show({
         title: 'Error',
@@ -87,7 +107,7 @@ function InventoryLotsPage() {
       notifications.show({ title: 'Success', message: 'Mortality registered', color: 'green' });
       closeMortality();
       setMortalityData({ Date: new Date().toISOString().split('T')[0], Quantity: 0, Cause: 'Disease', Notes: '' });
-      loadData();
+      refreshLots;
     } catch {
       notifications.show({
         title: 'Error',
@@ -101,6 +121,7 @@ function InventoryLotsPage() {
 
   const resetForm = () => {
     setFormData({
+      SpeciesName: '',
       SpeciesId: null,
       SupplierId: null,
       ArrivalDate: new Date().toISOString().split('T')[0],
@@ -131,16 +152,23 @@ function InventoryLotsPage() {
 
   const filteredLots = lots.filter(lot =>
     !search ||
+    (lot.SpeciesName || '').toLowerCase().includes(search.toLowerCase()) ||
     (speciesMap[lot.SpeciesId] || '').toLowerCase().includes(search.toLowerCase()) ||
     (supplierMap[lot.SupplierId] || '').toLowerCase().includes(search.toLowerCase())
   );
 
   const rows = filteredLots.map((item) => {
     const status = getStockStatus(item);
+    const catalogName = speciesMap[item.SpeciesId];
     return (
       <Table.Tr key={item.Id}>
-        <Table.Td fw={500}>{speciesMap[item.SpeciesId] || 'Unknown'}</Table.Td>
-        <Table.Td>{supplierMap[item.SupplierId] || 'Unknown'}</Table.Td>
+        <Table.Td fw={500}>
+          {item.SpeciesName || catalogName || 'Unknown'}
+          {catalogName && item.SpeciesName !== catalogName && (
+            <Text size="xs" c="dimmed">{catalogName}</Text>
+          )}
+        </Table.Td>
+        <Table.Td>{supplierMap[item.SupplierId] || 'N/A'}</Table.Td>
         <Table.Td>{new Date(item.ArrivalDate).toLocaleDateString()}</Table.Td>
         <Table.Td>{item.InitialQuantity}</Table.Td>
         <Table.Td>{item.CurrentStock || 0}</Table.Td>
@@ -161,12 +189,12 @@ function InventoryLotsPage() {
           <Text size="xl" fw={700}>{t('Inventory')}</Text>
           <Text size="sm" c="dimmed">{filteredLots.length} {t('lots tracked')}</Text>
         </Box>
-        <Button leftSection={<IconPlus size={16} />} onClick={open}>
+        <Button leftSection={<IconPlus size={16} />} onClick={() => setActiveTab('create')}>
           {t('Create Lot')}
         </Button>
       </Group>
 
-      <Tabs defaultValue="list">
+      <Tabs value={activeTab} onChange={setActiveTab}>
         <Tabs.List mb="md">
           <Tabs.Tab value="list">{t('Inventory Lots')}</Tabs.Tab>
           <Tabs.Tab value="create">{t('Create Lot')}</Tabs.Tab>
@@ -182,39 +210,56 @@ function InventoryLotsPage() {
             style={{ maxWidth: 320 }}
           />
 
-          <Table>
-            <Table.Thead>
-              <Table.Tr>
-                <Table.Th>{t('Species')}</Table.Th>
-                <Table.Th>{t('Supplier')}</Table.Th>
-                <Table.Th>{t('Arrival Date')}</Table.Th>
-                <Table.Th>{t('Initial Qty')}</Table.Th>
-                <Table.Th>{t('Current Stock')}</Table.Th>
-                <Table.Th>{t('Status')}</Table.Th>
-                <Table.Th>{t('Actions')}</Table.Th>
-              </Table.Tr>
-            </Table.Thead>
-            <Table.Tbody>{rows}</Table.Tbody>
-          </Table>
+          {listLoading ? (
+            <Stack align="center" py="xl"><Loader /></Stack>
+          ) : (
+            <>
+              <Table>
+                <Table.Thead>
+                  <Table.Tr>
+                    <Table.Th>{t('Species')}</Table.Th>
+                    <Table.Th>{t('Supplier')}</Table.Th>
+                    <Table.Th>{t('Arrival Date')}</Table.Th>
+                    <Table.Th>{t('Initial Qty')}</Table.Th>
+                    <Table.Th>{t('Current Stock')}</Table.Th>
+                    <Table.Th>{t('Status')}</Table.Th>
+                    <Table.Th>{t('Actions')}</Table.Th>
+                  </Table.Tr>
+                </Table.Thead>
+                <Table.Tbody>{rows}</Table.Tbody>
+              </Table>
+              <Group justify="center" mt="md">
+                <Pagination total={totalPages} value={page} onChange={(p) => setPage(p)} />
+              </Group>
+            </>
+          )}
         </Tabs.Panel>
 
         <Tabs.Panel value="create">
           <Paper p="lg" radius="md" withBorder style={{ maxWidth: 600 }}>
             <form onSubmit={(e) => { e.preventDefault(); handleSubmit(); }}>
               <Stack gap="sm">
-                <Select
-                  label="Species"
+                <TextInput
+                  label="Species name (free text)"
+                  description="Commercial name used by the seller (e.g. 'blue ram', 'ramirezi azul')"
                   required
+                  value={formData.SpeciesName}
+                  onChange={(e) => setFormData({ ...formData, SpeciesName: e.target.value })}
+                />
+                <Select
+                  label="Species (catalog)"
+                  description="Optional — link to a normalized species record"
+                  clearable
                   data={species.map(s => ({ value: s.Id.toString(), label: s.CommonName }))}
                   value={formData.SpeciesId?.toString() || ''}
-                  onChange={(value) => setFormData({ ...formData, SpeciesId: parseInt(value) })}
+                  onChange={(value) => setFormData({ ...formData, SpeciesId: value ? parseInt(value) : null })}
                 />
                 <Select
                   label="Supplier"
-                  required
+                  clearable
                   data={suppliers.map(s => ({ value: s.Id.toString(), label: s.Name }))}
                   value={formData.SupplierId?.toString() || ''}
-                  onChange={(value) => setFormData({ ...formData, SupplierId: parseInt(value) })}
+                  onChange={(value) => setFormData({ ...formData, SupplierId: value ? parseInt(value) : null })}
                 />
                 <TextInput
                   label="Arrival Date"
@@ -262,7 +307,7 @@ function InventoryLotsPage() {
         {selectedLot && (
           <form onSubmit={(e) => { e.preventDefault(); handleRegisterMortality(); }}>
             <Stack gap="sm">
-              <Text size="sm">Lot: {speciesMap[selectedLot.SpeciesId]} (Stock: {selectedLot.CurrentStock || 0})</Text>
+              <Text size="sm">Lot: {selectedLot.SpeciesName || speciesMap[selectedLot.SpeciesId] || 'Unknown'} (Stock: {selectedLot.CurrentStock || 0})</Text>
               <TextInput
                 label="Date"
                 type="date"

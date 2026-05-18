@@ -5,17 +5,20 @@ import { MantineProvider, ColorSchemeScript } from '@mantine/core'
 import { Notifications } from '@mantine/notifications'
 import '@mantine/core/styles.css'
 import '@mantine/notifications/styles.css'
-import i18n from './tools/i18n.js'
+import './tools/i18n.js'
 import './index.css'
 
 import App from './App.jsx'
 import theme from './theme'
+import { AuthProvider } from './contexts/AuthContext.jsx'
 
 createRoot(document.getElementById('root')).render(
   <BrowserRouter>
-    <MantineProvider theme={theme} withGlobalStyles withNormalizeCSS>
+    <MantineProvider theme={theme} defaultColorScheme="light">
       <Notifications />
-      <App />
+      <AuthProvider>
+        <App />
+      </AuthProvider>
     </MantineProvider>
   </BrowserRouter>,
 )

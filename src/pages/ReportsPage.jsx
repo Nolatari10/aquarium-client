@@ -1,57 +1,99 @@
-import { useState } from 'react';
-import { Text, Tabs, Card, Table, Group, Badge, Button, TextInput, Box, SimpleGrid, Stack, Paper } from '@mantine/core';
+import { useState, useEffect } from 'react';
+import { Text, Tabs, Card, Table, Group, Badge, Button, TextInput, Select, Box, SimpleGrid, Stack, Paper, Tooltip, ThemeIcon } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
+import { IconAlertTriangle, IconCheck, IconClock } from '@tabler/icons-react';
 import { reportsApi } from '../api/reports';
+import { suppliersApi } from '../api/suppliers';
+import { catalogApi } from '../api/catalog';
 import ExportCSV from '../components/report/ExportCSV';
 import ExportPDF from '../components/report/ExportPDF';
 import { useTranslation } from 'react-i18next';
 
+function getDefaultStart() {
+  const d = new Date();
+  d.setDate(d.getDate() - 30);
+  return d.toISOString().slice(0, 10);
+}
+
+function getDefaultEnd() {
+  return new Date().toISOString().slice(0, 10);
+}
+
 function ReportsPage() {
   const { t } = useTranslation();
-  const [loading, setLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState('stock');
+  const [loadingStock, setLoadingStock] = useState(false);
+  const [loadingMortality, setLoadingMortality] = useState(false);
+  const [loadingSales, setLoadingSales] = useState(false);
+  const [loadingValuation, setLoadingValuation] = useState(false);
+  const [loadingSupplierPerf, setLoadingSupplierPerf] = useState(false);
+  const [loadingTurnover, setLoadingTurnover] = useState(false);
+
   const [stockReport, setStockReport] = useState(null);
   const [mortalityReport, setMortalityReport] = useState(null);
   const [salesReport, setSalesReport] = useState(null);
   const [valuationReport, setValuationReport] = useState(null);
+  const [supplierPerfReport, setSupplierPerfReport] = useState(null);
+  const [turnoverReport, setTurnoverReport] = useState(null);
+
+  const [speciesList, setSpeciesList] = useState([]);
+  const [supplierList, setSupplierList] = useState([]);
 
   const [mortalityFilters, setMortalityFilters] = useState({
-    startDate: '',
-    endDate: '',
-    speciesId: ''
+    startDate: getDefaultStart(),
+    endDate: getDefaultEnd(),
+    speciesId: null,
+    supplierId: null,
   });
 
   const [salesFilters, setSalesFilters] = useState({
-    startDate: '',
-    endDate: ''
+    startDate: getDefaultStart(),
+    endDate: getDefaultEnd(),
   });
 
+  const [supplierPerfFilters, setSupplierPerfFilters] = useState({
+    startDate: getDefaultStart(),
+    endDate: getDefaultEnd(),
+  });
+
+  const [turnoverFilters, setTurnoverFilters] = useState({
+    speciesId: null,
+    supplierId: null,
+  });
+
+  useEffect(() => {
+    Promise.all([
+      catalogApi.getAll(1, 1000).then(r => setSpeciesList(r.data?.Items || [])).catch(() => {}),
+      suppliersApi.getAll().then(r => setSupplierList(r.data || [])).catch(() => {}),
+    ]);
+  }, []);
+
+  useEffect(() => {
+    if (activeTab === 'stock' && !stockReport) loadStockReport();
+    else if (activeTab === 'mortality' && !mortalityReport) loadMortalityReport();
+    else if (activeTab === 'valuation' && !valuationReport) loadValuationReport();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab]);
+
   const loadStockReport = async () => {
-    try {
-      setLoading(true);
-      const response = await reportsApi.getStockReport();
-      setStockReport(response.data);
-      console.log('Stock Report:', response.data);
-    } catch {
-      notifications.show({ title: 'Error', message: t('Failed to load stock report'), color: 'red' });
-    } finally {
-      setLoading(false);
-    }
+    try { setLoadingStock(true); const r = await reportsApi.getStockReport(); setStockReport(r.data); }
+    catch { notifications.show({ title: 'Error', message: t('Failed to load stock report'), color: 'red' }); }
+    finally { setLoadingStock(false); }
   };
 
   const loadMortalityReport = async () => {
     try {
-      setLoading(true);
+      setLoadingMortality(true);
       const params = {};
       if (mortalityFilters.startDate) params.startDate = mortalityFilters.startDate;
       if (mortalityFilters.endDate) params.endDate = mortalityFilters.endDate;
       if (mortalityFilters.speciesId) params.speciesId = mortalityFilters.speciesId;
-      const response = await reportsApi.getMortalityReport(params);
-      setMortalityReport(response.data);
+      if (mortalityFilters.supplierId) params.supplierId = mortalityFilters.supplierId;
+      const r = await reportsApi.getMortalityReport(params);
+      setMortalityReport(r.data);
     } catch {
       notifications.show({ title: 'Error', message: t('Failed to load mortality report'), color: 'red' });
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoadingMortality(false); }
   };
 
   const loadSalesReport = async () => {
@@ -59,84 +101,107 @@ function ReportsPage() {
       notifications.show({ title: 'Error', message: t('Select date range'), color: 'red' });
       return;
     }
-    try {
-      setLoading(true);
-      const response = await reportsApi.getSalesReport(salesFilters.startDate, salesFilters.endDate);
-      setSalesReport(response.data);
-    } catch {
-      notifications.show({ title: 'Error', message: t('Failed to load sales report'), color: 'red' });
-    } finally {
-      setLoading(false);
-    }
+    try { setLoadingSales(true); const r = await reportsApi.getSalesReport(salesFilters.startDate, salesFilters.endDate, 1, 50); setSalesReport(r.data); }
+    catch { notifications.show({ title: 'Error', message: t('Failed to load sales report'), color: 'red' }); }
+    finally { setLoadingSales(false); }
   };
 
   const loadValuationReport = async () => {
-    try {
-      setLoading(true);
-      const response = await reportsApi.getInventoryValuation();
-      setValuationReport(response.data);
-    } catch {
-      notifications.show({ title: 'Error', message: t('Failed to load valuation report'), color: 'red' });
-    } finally {
-      setLoading(false);
-    }
+    try { setLoadingValuation(true); const r = await reportsApi.getInventoryValuation(); setValuationReport(r.data); }
+    catch { notifications.show({ title: 'Error', message: t('Failed to load valuation report'), color: 'red' }); }
+    finally { setLoadingValuation(false); }
   };
+
+  const loadSupplierPerformance = async () => {
+    try {
+      setLoadingSupplierPerf(true);
+      const params = {};
+      if (supplierPerfFilters.startDate) params.startDate = supplierPerfFilters.startDate;
+      if (supplierPerfFilters.endDate) params.endDate = supplierPerfFilters.endDate;
+      const r = await reportsApi.getSupplierPerformance(params);
+      setSupplierPerfReport(r.data);
+    } catch {
+      notifications.show({ title: 'Error', message: t('Failed to load supplier performance'), color: 'red' });
+    } finally { setLoadingSupplierPerf(false); }
+  };
+
+  const loadInventoryTurnover = async () => {
+    try {
+      setLoadingTurnover(true);
+      const params = {};
+      if (turnoverFilters.speciesId) params.speciesId = turnoverFilters.speciesId;
+      if (turnoverFilters.supplierId) params.supplierId = turnoverFilters.supplierId;
+      const r = await reportsApi.getInventoryTurnover(params);
+      setTurnoverReport(r.data);
+    } catch {
+      notifications.show({ title: 'Error', message: t('Failed to load turnover report'), color: 'red' });
+    } finally { setLoadingTurnover(false); }
+  };
+
+  const speciesOptions = speciesList.map(s => ({ value: String(s.Id), label: s.CommonName }));
+  const supplierOptions = supplierList.map(s => ({ value: String(s.Id), label: s.Name }));
 
   return (
     <Box>
       <Text size="xl" fw={700} mb="lg">{t('Reports')}</Text>
 
-      <Tabs defaultValue="stock" keepMounted={false}>
+      <Tabs value={activeTab} onChange={setActiveTab} keepMounted={false}>
         <Tabs.List mb="lg">
           <Tabs.Tab value="stock">{t('Stock')}</Tabs.Tab>
           <Tabs.Tab value="mortality">{t('Mortality')}</Tabs.Tab>
           <Tabs.Tab value="sales">{t('Sales')}</Tabs.Tab>
           <Tabs.Tab value="valuation">{t('Valuation')}</Tabs.Tab>
+          <Tabs.Tab value="supplier-performance">{t('Suppliers')}</Tabs.Tab>
+          <Tabs.Tab value="inventory-turnover">{t('Aging')}</Tabs.Tab>
         </Tabs.List>
 
+        {/* STOCK REPORT */}
         <Tabs.Panel value="stock">
           <Stack gap="lg">
             <Group justify="space-between">
-              <Button onClick={loadStockReport} loading={loading} variant="light">
-                {t('Load Stock Report')}
+              <Button onClick={loadStockReport} loading={loadingStock} variant="light">
+                {stockReport ? t('Refresh') : t('Load Stock Report')}
               </Button>
               {stockReport && (
                 <Group gap="xs">
-                  <ExportCSV
-                    data={stockReport.Items || []}
-                    fileName="stock_report.csv"
-                  />
-                  <ExportPDF
-                    data={stockReport}
-                    title={t('Stock Report')}
-                    fileName="Stock_Report.pdf"
-                  />
+                  <ExportCSV data={stockReport.Items || []} fileName="stock_report.csv" />
+                  <ExportPDF data={stockReport} title={t('Stock Report')} fileName="Stock_Report.pdf" />
                 </Group>
               )}
             </Group>
 
-            {stockReport && (
+            {!stockReport && !loadingStock && (
+              <Paper p="xl" ta="center" withBorder><Text c="dimmed">{t('No data loaded')}</Text></Paper>
+            )}
+
+            {stockReport && stockReport.Items.length === 0 ? (
+              <Paper p="xl" ta="center" withBorder><Text c="dimmed">{t('No stock to report')}</Text></Paper>
+            ) : stockReport && (
               <>
-                <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="lg">
+                <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="lg">
                   <Card padding="lg" radius="md" withBorder>
-                    <Text size="sm" c="dimmed">Total Species</Text>
+                    <Text size="sm" c="dimmed">{t('Total Species')}</Text>
                     <Text size="xl" fw={700}>{stockReport.TotalSpecies}</Text>
                   </Card>
                   <Card padding="lg" radius="md" withBorder>
-                    <Text size="sm" c="dimmed">Total Stock</Text>
+                    <Text size="sm" c="dimmed">{t('Total Stock')}</Text>
                     <Text size="xl" fw={700} c="teal.7">{stockReport.TotalStock}</Text>
+                  </Card>
+                  <Card padding="lg" radius="md" withBorder>
+                    <Text size="sm" c="dimmed">{t('Total Cost Value')}</Text>
+                    <Text size="xl" fw={700} c="teal.7">${stockReport.Items.reduce((s, i) => s + i.TotalCostValue, 0).toFixed(2)}</Text>
                   </Card>
                 </SimpleGrid>
 
                 <Card padding="lg" radius="md" withBorder>
-                  <Text fw={700} mb="md">Current Stock by Species</Text>
+                  <Text fw={700} mb="md">{t('Current Stock by Species')}</Text>
                   <Table>
                     <Table.Thead>
                       <Table.Tr>
-                        <Table.Th>Species</Table.Th>
-                        <Table.Th>Category</Table.Th>
-                        <Table.Th>Current Stock</Table.Th>
-                        <Table.Th>Cost Value</Table.Th>
+                        <Table.Th>{t('Species')}</Table.Th>
+                        <Table.Th>{t('Category')}</Table.Th>
+                        <Table.Th>{t('In Stock')}</Table.Th>
+                        <Table.Th>{t('Cost Value')}</Table.Th>
                       </Table.Tr>
                     </Table.Thead>
                     <Table.Tbody>
@@ -156,59 +221,51 @@ function ReportsPage() {
           </Stack>
         </Tabs.Panel>
 
+        {/* MORTALITY REPORT */}
         <Tabs.Panel value="mortality">
           <Stack gap="lg">
-            <Paper p="lg" radius="md" withBorder style={{ maxWidth: 500 }}>
+            <Paper p="lg" radius="md" withBorder>
               <Stack gap="sm">
-                <Text fw={500} size="sm">Filters</Text>
+                <Text fw={500} size="sm">{t('Filters')}</Text>
                 <Group grow>
-                  <TextInput
-                    label="Start Date"
-                    type="date"
-                    value={mortalityFilters.startDate}
-                    onChange={(e) => setMortalityFilters({ ...mortalityFilters, startDate: e.target.value })}
-                  />
-                  <TextInput
-                    label="End Date"
-                    type="date"
-                    value={mortalityFilters.endDate}
-                    onChange={(e) => setMortalityFilters({ ...mortalityFilters, endDate: e.target.value })}
-                  />
+                  <TextInput label={t('Start Date')} type="date" value={mortalityFilters.startDate} onChange={(e) => setMortalityFilters({ ...mortalityFilters, startDate: e.target.value })} />
+                  <TextInput label={t('End Date')} type="date" value={mortalityFilters.endDate} onChange={(e) => setMortalityFilters({ ...mortalityFilters, endDate: e.target.value })} />
+                </Group>
+                <Group grow>
+                  <Select label={t('Species')} placeholder={t('All species')} data={speciesOptions} value={mortalityFilters.speciesId} onChange={(v) => setMortalityFilters({ ...mortalityFilters, speciesId: v })} clearable />
+                  <Select label={t('Supplier')} placeholder={t('All suppliers')} data={supplierOptions} value={mortalityFilters.supplierId} onChange={(v) => setMortalityFilters({ ...mortalityFilters, supplierId: v })} clearable />
                 </Group>
                 <Group justify="space-between">
-                  <Button onClick={loadMortalityReport} loading={loading} variant="light">
-                    Load Report
-                  </Button>
+                  <Button onClick={loadMortalityReport} loading={loadingMortality} variant="light">{t('Load Report')}</Button>
                   {mortalityReport && (
                     <Group gap="xs">
-                      <ExportCSV
-                        data={mortalityReport.Summaries || []}
-                        fileName="mortality_report.csv"
-                      />
-                      <ExportPDF
-                        data={mortalityReport}
-                        title={t('Mortality Report')}
-                        fileName="Mortality_Report.pdf"
-                      />
+                      <ExportCSV data={mortalityReport.Summaries || []} fileName="mortality_report.csv" />
+                      <ExportPDF data={mortalityReport} title={t('Mortality Report')} fileName="Mortality_Report.pdf" />
                     </Group>
                   )}
                 </Group>
               </Stack>
             </Paper>
 
-            {mortalityReport && (
+            {!mortalityReport && !loadingMortality && (
+              <Paper p="xl" ta="center" withBorder><Text c="dimmed">{t('No data loaded')}</Text></Paper>
+            )}
+
+            {mortalityReport && mortalityReport.Summaries.length === 0 ? (
+              <Paper p="xl" ta="center" withBorder><Text c="dimmed">{t('No mortality records for this period')}</Text></Paper>
+            ) : mortalityReport && (
               <>
                 <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="lg">
                   <Card padding="lg" radius="md" withBorder>
-                    <Text size="sm" c="dimmed">Total Deaths</Text>
+                    <Text size="sm" c="dimmed">{t('Total Deaths')}</Text>
                     <Text size="xl" fw={700} c="red.7">{mortalityReport.TotalDeaths}</Text>
                   </Card>
                   <Card padding="lg" radius="md" withBorder>
-                    <Text size="sm" c="dimmed">Sold</Text>
+                    <Text size="sm" c="dimmed">{t('Sold')}</Text>
                     <Text size="xl" fw={700} c="green.7">{mortalityReport.TotalSold}</Text>
                   </Card>
                   <Card padding="lg" radius="md" withBorder>
-                    <Text size="sm" c="dimmed">Other Causes</Text>
+                    <Text size="sm" c="dimmed">{t('Other Causes')}</Text>
                     <Text size="xl" fw={700} c="orange.7">{mortalityReport.TotalOtherCauses}</Text>
                   </Card>
                 </SimpleGrid>
@@ -217,12 +274,18 @@ function ReportsPage() {
                   {mortalityReport.Summaries.map((summary, idx) => (
                     <Card key={idx} padding="lg" radius="md" withBorder>
                       <Group justify="space-between" mb="sm">
-                        <Text fw={700}>{summary.CommonName}</Text>
-                        <Badge color="red">{summary.TotalDeaths} deaths</Badge>
+                        <Group gap="xs">
+                          <Text fw={700}>{summary.CommonName}</Text>
+                          {summary.SupplierName && <Text size="xs" c="dimmed">via {summary.SupplierName}</Text>}
+                        </Group>
+                        <Group gap="xs">
+                          {summary.OtherCauses > 0 && <Tooltip label={`${summary.OtherCauses} non-sold deaths`}><ThemeIcon color="orange" variant="light" size="sm"><IconAlertTriangle size={12} /></ThemeIcon></Tooltip>}
+                          <Badge color="red">{summary.TotalDeaths} {t('deaths')}</Badge>
+                        </Group>
                       </Group>
                       <Group gap="md">
-                        <Badge color="green" variant="light">Sold: {summary.Sold}</Badge>
-                        <Badge color="orange" variant="light">Other: {summary.OtherCauses}</Badge>
+                        <Badge color="green" variant="light">{t('Sold')}: {summary.Sold}</Badge>
+                        <Badge color="orange" variant="light">{t('Other')}: {summary.OtherCauses}</Badge>
                       </Group>
                     </Card>
                   ))}
@@ -232,70 +295,55 @@ function ReportsPage() {
           </Stack>
         </Tabs.Panel>
 
+        {/* SALES REPORT */}
         <Tabs.Panel value="sales">
           <Stack gap="lg">
-            <Paper p="lg" radius="md" withBorder style={{ maxWidth: 500 }}>
+            <Paper p="lg" radius="md" withBorder>
               <Stack gap="sm">
-                <Text fw={500} size="sm">Date Range</Text>
+                <Text fw={500} size="sm">{t('Date Range')}</Text>
                 <Group grow>
-                  <TextInput
-                    label="Start Date"
-                    type="date"
-                    value={salesFilters.startDate}
-                    onChange={(e) => setSalesFilters({ ...salesFilters, startDate: e.target.value })}
-                  />
-                  <TextInput
-                    label="End Date"
-                    type="date"
-                    value={salesFilters.endDate}
-                    onChange={(e) => setSalesFilters({ ...salesFilters, endDate: e.target.value })}
-                  />
+                  <TextInput label={t('Start Date')} type="date" value={salesFilters.startDate} onChange={(e) => setSalesFilters({ ...salesFilters, startDate: e.target.value })} />
+                  <TextInput label={t('End Date')} type="date" value={salesFilters.endDate} onChange={(e) => setSalesFilters({ ...salesFilters, endDate: e.target.value })} />
                 </Group>
                 <Group justify="space-between">
-                  <Button onClick={loadSalesReport} loading={loading} variant="light">
-                    Load Report
-                  </Button>
+                  <Button onClick={loadSalesReport} loading={loadingSales} variant="light">{t('Load Report')}</Button>
                   {salesReport && (
                     <Group gap="xs">
-                      <ExportCSV
-                        data={salesReport.Sales || []}
-                        fileName="sales_report.csv"
-                      />
-                      <ExportPDF
-                        data={salesReport}
-                        title={t('Sales Report')}
-                        subtitle={salesFilters.startDate && salesFilters.endDate
-                          ? `${salesFilters.startDate} — ${salesFilters.endDate}`
-                          : undefined}
-                        fileName="Sales_Report.pdf"
-                      />
+                      <ExportCSV data={salesReport.Sales || []} fileName="sales_report.csv" />
+                      <ExportPDF data={salesReport} title={t('Sales Report')} subtitle={salesFilters.startDate && salesFilters.endDate ? `${salesFilters.startDate} — ${salesFilters.endDate}` : undefined} fileName="Sales_Report.pdf" />
                     </Group>
                   )}
                 </Group>
               </Stack>
             </Paper>
 
-            {salesReport && (
+            {!salesReport && !loadingSales && (
+              <Paper p="xl" ta="center" withBorder><Text c="dimmed">{t('No data loaded')}</Text></Paper>
+            )}
+
+            {salesReport && salesReport.Sales.length === 0 ? (
+              <Paper p="xl" ta="center" withBorder><Text c="dimmed">{t('No sales in this period')}</Text></Paper>
+            ) : salesReport && (
               <>
                 <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="lg">
                   <Card padding="lg" radius="md" withBorder>
-                    <Text size="sm" c="dimmed">Total Revenue</Text>
+                    <Text size="sm" c="dimmed">{t('Total Revenue')}</Text>
                     <Text size="xl" fw={700} c="green.7">${salesReport.TotalRevenue.toFixed(2)}</Text>
                   </Card>
                   <Card padding="lg" radius="md" withBorder>
-                    <Text size="sm" c="dimmed">Items Sold</Text>
+                    <Text size="sm" c="dimmed">{t('Items Sold')}</Text>
                     <Text size="xl" fw={700}>{salesReport.TotalItemsSold}</Text>
                   </Card>
                 </SimpleGrid>
 
                 <Card padding="lg" radius="md" withBorder>
-                  <Text fw={700} mb="md">Top Species by Sales</Text>
+                  <Text fw={700} mb="md">{t('Top Selling Species')}</Text>
                   <Table>
                     <Table.Thead>
                       <Table.Tr>
-                        <Table.Th>Species</Table.Th>
-                        <Table.Th>Quantity Sold</Table.Th>
-                        <Table.Th>Revenue</Table.Th>
+                        <Table.Th>{t('Species')}</Table.Th>
+                        <Table.Th>{t('Qty Sold')}</Table.Th>
+                        <Table.Th>{t('Revenue')}</Table.Th>
                       </Table.Tr>
                     </Table.Thead>
                     <Table.Tbody>
@@ -311,14 +359,14 @@ function ReportsPage() {
                 </Card>
 
                 <Card padding="lg" radius="md" withBorder>
-                  <Text fw={700} mb="md">Recent Sales</Text>
+                  <Text fw={700} mb="md">{t('Recent Sales')}</Text>
                   <Table>
                     <Table.Thead>
                       <Table.Tr>
-                        <Table.Th>Date</Table.Th>
-                        <Table.Th>Customer</Table.Th>
-                        <Table.Th>Items</Table.Th>
-                        <Table.Th>Total</Table.Th>
+                        <Table.Th>{t('Date')}</Table.Th>
+                        <Table.Th>{t('Customer')}</Table.Th>
+                        <Table.Th>{t('Items')}</Table.Th>
+                        <Table.Th>{t('Total')}</Table.Th>
                       </Table.Tr>
                     </Table.Thead>
                     <Table.Tbody>
@@ -338,57 +386,57 @@ function ReportsPage() {
           </Stack>
         </Tabs.Panel>
 
+        {/* VALUATION REPORT */}
         <Tabs.Panel value="valuation">
           <Stack gap="lg">
             <Group justify="space-between">
-              <Button onClick={loadValuationReport} loading={loading} variant="light">
-                Load Valuation Report
+              <Button onClick={loadValuationReport} loading={loadingValuation} variant="light">
+                {valuationReport ? t('Refresh') : t('Load Valuation Report')}
               </Button>
               {valuationReport && (
                 <Group gap="xs">
-                  <ExportCSV
-                    data={valuationReport.ByCategory || []}
-                    fileName="valuation_report.csv"
-                  />
-                  <ExportPDF
-                    data={valuationReport}
-                    title={t('Valuation Report')}
-                    fileName="Valuation_Report.pdf"
-                  />
+                  <ExportCSV data={valuationReport.ByCategory || []} fileName="valuation_report.csv" />
+                  <ExportPDF data={valuationReport} title={t('Valuation Report')} fileName="Valuation_Report.pdf" />
                 </Group>
               )}
             </Group>
 
-            {valuationReport && (
+            {!valuationReport && !loadingValuation && (
+              <Paper p="xl" ta="center" withBorder><Text c="dimmed">{t('No data loaded')}</Text></Paper>
+            )}
+
+            {valuationReport && valuationReport.TotalLots === 0 ? (
+              <Paper p="xl" ta="center" withBorder><Text c="dimmed">{t('No stock to value')}</Text></Paper>
+            ) : valuationReport && (
               <>
                 <SimpleGrid cols={{ base: 1, sm: 2, lg: 4 }} spacing="lg">
                   <Card padding="lg" radius="md" withBorder>
-                    <Text size="sm" c="dimmed">Total Units</Text>
+                    <Text size="sm" c="dimmed">{t('Total Units')}</Text>
                     <Text size="xl" fw={700}>{valuationReport.TotalUnitsInStock}</Text>
                   </Card>
                   <Card padding="lg" radius="md" withBorder>
-                    <Text size="sm" c="dimmed">Total Cost</Text>
+                    <Text size="sm" c="dimmed">{t('Total Cost')}</Text>
                     <Text size="xl" fw={700} c="teal.7">${valuationReport.TotalCostValue.toFixed(2)}</Text>
                   </Card>
                   <Card padding="lg" radius="md" withBorder>
-                    <Text size="sm" c="dimmed">Total Lots</Text>
+                    <Text size="sm" c="dimmed">{t('Lots')}</Text>
                     <Text size="xl" fw={700}>{valuationReport.TotalLots}</Text>
                   </Card>
                   <Card padding="lg" radius="md" withBorder>
-                    <Text size="sm" c="dimmed">Avg Cost/Unit</Text>
+                    <Text size="sm" c="dimmed">{t('Avg Cost/Unit')}</Text>
                     <Text size="xl" fw={700}>${valuationReport.AverageUnitCost.toFixed(2)}</Text>
                   </Card>
                 </SimpleGrid>
 
                 <Card padding="lg" radius="md" withBorder>
-                  <Text fw={700} mb="md">Valuation by Category</Text>
+                  <Text fw={700} mb="md">{t('Valuation by Category')}</Text>
                   <Table>
                     <Table.Thead>
                       <Table.Tr>
-                        <Table.Th>Category</Table.Th>
-                        <Table.Th>Units in Stock</Table.Th>
-                        <Table.Th>Total Cost Value</Table.Th>
-                        <Table.Th>Avg Unit Cost</Table.Th>
+                        <Table.Th>{t('Category')}</Table.Th>
+                        <Table.Th>{t('Units')}</Table.Th>
+                        <Table.Th>{t('Cost Value')}</Table.Th>
+                        <Table.Th>{t('Avg Cost')}</Table.Th>
                       </Table.Tr>
                     </Table.Thead>
                     <Table.Tbody>
@@ -398,6 +446,182 @@ function ReportsPage() {
                           <Table.Td>{cat.UnitsInStock}</Table.Td>
                           <Table.Td>${cat.TotalCostValue.toFixed(2)}</Table.Td>
                           <Table.Td>${cat.AverageUnitCost.toFixed(2)}</Table.Td>
+                        </Table.Tr>
+                      ))}
+                    </Table.Tbody>
+                  </Table>
+                </Card>
+              </>
+            )}
+          </Stack>
+        </Tabs.Panel>
+
+        {/* SUPPLIER PERFORMANCE REPORT */}
+        <Tabs.Panel value="supplier-performance">
+          <Stack gap="lg">
+            <Paper p="lg" radius="md" withBorder>
+              <Stack gap="sm">
+                <Text fw={500} size="sm">{t('Date Range')}</Text>
+                <Group grow>
+                  <TextInput label={t('Start Date')} type="date" value={supplierPerfFilters.startDate} onChange={(e) => setSupplierPerfFilters({ ...supplierPerfFilters, startDate: e.target.value })} />
+                  <TextInput label={t('End Date')} type="date" value={supplierPerfFilters.endDate} onChange={(e) => setSupplierPerfFilters({ ...supplierPerfFilters, endDate: e.target.value })} />
+                </Group>
+                <Group justify="space-between">
+                  <Button onClick={loadSupplierPerformance} loading={loadingSupplierPerf} variant="light">{t('Load Report')}</Button>
+                  {supplierPerfReport && (
+                    <Group gap="xs">
+                      <ExportCSV data={supplierPerfReport.Suppliers || []} fileName="supplier_performance.csv" />
+                      <ExportPDF data={supplierPerfReport} title={t('Supplier Performance')} fileName="Supplier_Performance.pdf" />
+                    </Group>
+                  )}
+                </Group>
+              </Stack>
+            </Paper>
+
+            {!supplierPerfReport && !loadingSupplierPerf && (
+              <Paper p="xl" ta="center" withBorder><Text c="dimmed">{t('No data loaded')}</Text></Paper>
+            )}
+
+            {supplierPerfReport && supplierPerfReport.Suppliers.length === 0 ? (
+              <Paper p="xl" ta="center" withBorder><Text c="dimmed">{t('No supplier data available')}</Text></Paper>
+            ) : supplierPerfReport && (
+              <>
+                <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="lg">
+                  <Card padding="lg" radius="md" withBorder>
+                    <Text size="sm" c="dimmed">{t('Suppliers Evaluated')}</Text>
+                    <Text size="xl" fw={700}>{supplierPerfReport.Suppliers.length}</Text>
+                  </Card>
+                  <Card padding="lg" radius="md" withBorder>
+                    <Text size="sm" c="dimmed">{t('Cost Lost to Mortality')}</Text>
+                    <Text size="xl" fw={700} c="red.7">${supplierPerfReport.TotalCostLost.toFixed(2)}</Text>
+                  </Card>
+                  <Card padding="lg" radius="md" withBorder>
+                    <Text size="sm" c="dimmed">{t('Avg Mortality Rate')}</Text>
+                    <Text size="xl" fw={700} c={supplierPerfReport.AverageMortalityRate > 10 ? 'red.7' : 'teal.7'}>{supplierPerfReport.AverageMortalityRate}%</Text>
+                  </Card>
+                </SimpleGrid>
+
+                <Card padding="lg" radius="md" withBorder>
+                  <Text fw={700} mb="md">{t('Supplier Performance Ranking')}</Text>
+                  <Text size="xs" c="dimmed" mb="sm">{t('Ranked by mortality rate — worst performers first')}</Text>
+                  <Table>
+                    <Table.Thead>
+                      <Table.Tr>
+                        <Table.Th>#</Table.Th>
+                        <Table.Th>{t('Supplier')}</Table.Th>
+                        <Table.Th>{t('Lots')}</Table.Th>
+                        <Table.Th>{t('DOA')}</Table.Th>
+                        <Table.Th>{t('Non-Sold Mortality')}</Table.Th>
+                        <Table.Th>{t('Cost Lost')}</Table.Th>
+                        <Table.Th>{t('Mortality Rate')}</Table.Th>
+                      </Table.Tr>
+                    </Table.Thead>
+                    <Table.Tbody>
+                      {supplierPerfReport.Suppliers.map((s) => (
+                        <Table.Tr key={s.SupplierId} style={s.MortalityRatePercent > 15 ? { backgroundColor: 'rgba(255,0,0,0.04)' } : undefined}>
+                          <Table.Td fw={500}>{s.Rank}</Table.Td>
+                          <Table.Td fw={500}>{s.SupplierName}</Table.Td>
+                          <Table.Td>{s.TotalLotsReceived}</Table.Td>
+                          <Table.Td>{s.TotalDOA}</Table.Td>
+                          <Table.Td>{s.NonSoldMortality}</Table.Td>
+                          <Table.Td>${s.CostLostToMortality.toFixed(2)}</Table.Td>
+                          <Table.Td>
+                            <Group gap="xs">
+                              {s.MortalityRatePercent > 15 && <Tooltip label={t('High mortality — consider review')}><ThemeIcon color="red" variant="light" size="sm"><IconAlertTriangle size={12} /></ThemeIcon></Tooltip>}
+                              {s.MortalityRatePercent <= 5 && <Tooltip label={t('Good performance')}><ThemeIcon color="green" variant="light" size="sm"><IconCheck size={12} /></ThemeIcon></Tooltip>}
+                              <Badge color={s.MortalityRatePercent > 15 ? 'red' : s.MortalityRatePercent > 5 ? 'orange' : 'green'} variant="light">{s.MortalityRatePercent}%</Badge>
+                            </Group>
+                          </Table.Td>
+                        </Table.Tr>
+                      ))}
+                    </Table.Tbody>
+                  </Table>
+                </Card>
+              </>
+            )}
+          </Stack>
+        </Tabs.Panel>
+
+        {/* INVENTORY TURNOVER / AGING REPORT */}
+        <Tabs.Panel value="inventory-turnover">
+          <Stack gap="lg">
+            <Paper p="lg" radius="md" withBorder>
+              <Stack gap="sm">
+                <Text fw={500} size="sm">{t('Filters')}</Text>
+                <Group grow>
+                  <Select label={t('Species')} placeholder={t('All species')} data={speciesOptions} value={turnoverFilters.speciesId} onChange={(v) => setTurnoverFilters({ ...turnoverFilters, speciesId: v })} clearable />
+                  <Select label={t('Supplier')} placeholder={t('All suppliers')} data={supplierOptions} value={turnoverFilters.supplierId} onChange={(v) => setTurnoverFilters({ ...turnoverFilters, supplierId: v })} clearable />
+                </Group>
+                <Group justify="space-between">
+                  <Button onClick={loadInventoryTurnover} loading={loadingTurnover} variant="light">{t('Load Report')}</Button>
+                  {turnoverReport && (
+                    <Group gap="xs">
+                      <ExportCSV data={turnoverReport.Lots || []} fileName="inventory_aging.csv" />
+                      <ExportPDF data={turnoverReport} title={t('Inventory Aging')} fileName="Inventory_Aging.pdf" />
+                    </Group>
+                  )}
+                </Group>
+              </Stack>
+            </Paper>
+
+            {!turnoverReport && !loadingTurnover && (
+              <Paper p="xl" ta="center" withBorder><Text c="dimmed">{t('No data loaded')}</Text></Paper>
+            )}
+
+            {turnoverReport && turnoverReport.Lots.length === 0 ? (
+              <Paper p="xl" ta="center" withBorder><Text c="dimmed">{t('No open lots to analyze')}</Text></Paper>
+            ) : turnoverReport && (
+              <>
+                <SimpleGrid cols={{ base: 1, sm: 4 }} spacing="lg">
+                  <Card padding="lg" radius="md" withBorder>
+                    <Text size="sm" c="dimmed">{t('Fresh')} (&lt;30d)</Text>
+                    <Text size="xl" fw={700} c="green.7">{turnoverReport.FreshLots}</Text>
+                  </Card>
+                  <Card padding="lg" radius="md" withBorder>
+                    <Text size="sm" c="dimmed">{t('Aging')} (30-90d)</Text>
+                    <Text size="xl" fw={700} c="orange.7">{turnoverReport.AgingLots}</Text>
+                  </Card>
+                  <Card padding="lg" radius="md" withBorder>
+                    <Text size="sm" c="dimmed">{t('Old')} (&gt;90d)</Text>
+                    <Text size="xl" fw={700} c="red.7">{turnoverReport.OldLots}</Text>
+                  </Card>
+                  <Card padding="lg" radius="md" withBorder>
+                    <Text size="sm" c="dimmed">{t('Avg Days in Stock')}</Text>
+                    <Text size="xl" fw={700}>{turnoverReport.AverageDaysInStock}</Text>
+                  </Card>
+                </SimpleGrid>
+
+                <Card padding="lg" radius="md" withBorder>
+                  <Text fw={700} mb="md">{t('Lot Aging Detail')}</Text>
+                  <Text size="xs" c="dimmed" mb="sm">{t('Old lots (&gt;90 days) highlighted — consider discounting or promoting')}</Text>
+                  <Table>
+                    <Table.Thead>
+                      <Table.Tr>
+                        <Table.Th>{t('Species')}</Table.Th>
+                        <Table.Th>{t('Supplier')}</Table.Th>
+                        <Table.Th>{t('Arrived')}</Table.Th>
+                        <Table.Th>{t('Days')}</Table.Th>
+                        <Table.Th>{t('Stock')}</Table.Th>
+                        <Table.Th>{t('Sold')}</Table.Th>
+                        <Table.Th>{t('Status')}</Table.Th>
+                        <Table.Th>{t('Cost at Risk')}</Table.Th>
+                      </Table.Tr>
+                    </Table.Thead>
+                    <Table.Tbody>
+                      {turnoverReport.Lots.map((lot) => (
+                        <Table.Tr key={lot.LotId} style={lot.AgingStatus === 'Old' ? { backgroundColor: 'rgba(255,0,0,0.06)' } : lot.AgingStatus === 'Aging' ? { backgroundColor: 'rgba(255,165,0,0.04)' } : undefined}>
+                          <Table.Td fw={500}>{lot.SpeciesName}</Table.Td>
+                          <Table.Td>{lot.SupplierName || '—'}</Table.Td>
+                          <Table.Td>{new Date(lot.ArrivalDate).toLocaleDateString()}</Table.Td>
+                          <Table.Td>{lot.DaysInStock}</Table.Td>
+                          <Table.Td>{lot.CurrentStock}</Table.Td>
+                          <Table.Td>{lot.SoldQuantity}</Table.Td>
+                          <Table.Td>
+                            <Badge color={lot.AgingStatus === 'Old' ? 'red' : lot.AgingStatus === 'Aging' ? 'orange' : 'green'} variant="light" leftSection={lot.AgingStatus === 'Old' ? <IconClock size={12} /> : lot.AgingStatus === 'Aging' ? <IconAlertTriangle size={12} /> : <IconCheck size={12} />}>
+                              {lot.AgingStatus}
+                            </Badge>
+                          </Table.Td>
+                          <Table.Td fw={500} c={lot.AgingStatus === 'Old' ? 'red.7' : undefined}>${lot.CostAtRisk.toFixed(2)}</Table.Td>
                         </Table.Tr>
                       ))}
                     </Table.Tbody>
