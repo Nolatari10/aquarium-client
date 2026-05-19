@@ -138,8 +138,8 @@ function ReportsPage() {
     } finally { setLoadingTurnover(false); }
   };
 
-  const speciesOptions = speciesList.map(s => ({ value: String(s.Id), label: s.CommonName }));
-  const supplierOptions = supplierList.map(s => ({ value: String(s.Id), label: s.Name }));
+  const speciesOptions = speciesList.filter(s => s.Id != null).map(s => ({ value: String(s.Id), label: s.CommonName }));
+  const supplierOptions = supplierList.filter(s => s.Id != null).map(s => ({ value: String(s.Id), label: s.Name }));
 
   return (
     <Box>

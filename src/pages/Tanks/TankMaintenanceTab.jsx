@@ -49,19 +49,25 @@ function TankMaintenanceTab({ tankId }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const data = { ...form };
-      if (data.WaterChangePercent) data.WaterChangePercent = parseInt(data.WaterChangePercent);
-      if (data.WaterChangeLiters) data.WaterChangeLiters = parseFloat(data.WaterChangeLiters);
-      if (data.DurationMinutes) data.DurationMinutes = parseInt(data.DurationMinutes);
-      if (data.ReminderFrequencyDays) data.ReminderFrequencyDays = parseInt(data.ReminderFrequencyDays);
+      const data = {};
+      for (const [k, v] of Object.entries(form)) {
+        if (v === '' || v === null) continue;
+        if (k === 'WaterChangePercent' || k === 'DurationMinutes' || k === 'ReminderFrequencyDays')
+          data[k] = parseInt(v);
+        else if (k === 'WaterChangeLiters')
+          data[k] = parseFloat(v);
+        else
+          data[k] = v;
+      }
 
       await tanksApi.addMaintenance(tankId, data);
       notifications.show({ title: 'Success', message: 'Maintenance logged', color: 'green' });
       close();
       setForm({ PerformedAt: new Date().toISOString().slice(0, 16), MaintenanceType: '', WaterChangePercent: '', WaterChangeLiters: '', DurationMinutes: '', Notes: '', ReminderFrequencyDays: '' });
       loadLogs();
-    } catch {
-      notifications.show({ title: 'Error', message: 'Failed to save', color: 'red' });
+    } catch (e) {
+      const msg = e.response?.data?.ErrorMessage || e.response?.data?.title || 'Failed to save';
+      notifications.show({ title: 'Error', message: msg, color: 'red' });
     }
   };
 

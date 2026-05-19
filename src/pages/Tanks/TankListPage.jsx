@@ -58,7 +58,7 @@ function TankListPage() {
   const loadTanks = async () => {
     try {
       setLoading(true);
-      const params = {};
+      const params = { isActive: true };
       if (typeFilter) params.tankType = typeFilter;
       if (statusFilter === 'inactive') params.isActive = false;
 

@@ -30,8 +30,9 @@ function SalesPage() {
 
   const [newItem, setNewItem] = useState({
     SpeciesId: null,
+    SpeciesVariantId: null,
     Quantity: 1,
-    UnitPrice: 0
+    UnitPrice: ''
   });
 
   useEffect(() => {
@@ -65,16 +66,16 @@ function SalesPage() {
   const refreshSales = () => { setPage(1); loadSales(1); };
 
   const handleAddItem = () => {
-    if (!newItem.SpeciesId) {
+    if (!newItem.SpeciesVariantId) {
       notifications.show({ title: 'Error', message: t('Select a species'), color: 'red' });
       return;
     }
     
     setSaleData({
       ...saleData,
-      Items: [...saleData.Items, { ...newItem }]
+      Items: [...saleData.Items, { ...newItem, UnitPrice: newItem.UnitPrice === '' ? 0 : parseFloat(newItem.UnitPrice) }]
     });
-    setNewItem({ SpeciesId: null, Quantity: 1, UnitPrice: 0 });
+    setNewItem({ SpeciesId: null, SpeciesVariantId: null, Quantity: 1, UnitPrice: '' });
   };
 
   const handleRemoveItem = (index) => {
@@ -98,7 +99,7 @@ function SalesPage() {
       notifications.show({ title: 'Success', message: t('Sale created'), color: 'green' });
       close();
       resetForm();
-      refreshSales;
+      refreshSales();
     } catch (e) {
       notifications.show({
         title: 'Error',
@@ -112,11 +113,16 @@ function SalesPage() {
 
   const resetForm = () => {
     setSaleData({ CustomerName: '', Date: new Date().toISOString().split('T')[0], Items: [] });
-    setNewItem({ SpeciesId: null, Quantity: 1, UnitPrice: 0 });
+    setNewItem({ SpeciesId: null, SpeciesVariantId: null, Quantity: 1, UnitPrice: '' });
   };
 
   const catalogMap = {};
-  catalog.forEach(c => catalogMap[c.SpeciesId] = c.CommonName);
+  catalog.forEach(c => {
+    const label = c.VariantName && c.VariantName !== 'Standard'
+      ? `${c.CommonName} (${c.VariantName})`
+      : c.CommonName;
+    catalogMap[c.SpeciesVariantId] = { label, speciesId: c.SpeciesId };
+  });
 
   const calculateTotal = () => {
     return saleData.Items.reduce((sum, item) => sum + (item.Quantity * item.UnitPrice), 0);
@@ -210,9 +216,24 @@ function SalesPage() {
           <Group grow>
             <Select
               label={t('Species')}
-              data={catalog.map(c => ({ value: c.SpeciesId.toString(), label: c.CommonName }))}
-              value={newItem.SpeciesId?.toString() || ''}
-              onChange={(value) => setNewItem({ ...newItem, SpeciesId: parseInt(value) })}
+              placeholder={t('Search species...')}
+              searchable
+              data={catalog.map(c => {
+                const label = c.VariantName && c.VariantName !== 'Standard'
+                  ? `${c.CommonName} (${c.VariantName})`
+                  : c.CommonName;
+                return { value: c.SpeciesVariantId.toString(), label };
+              })}
+              value={newItem.SpeciesVariantId?.toString() || ''}
+              onChange={(value) => {
+                const variantId = parseInt(value);
+                const selected = catalog.find(c => c.SpeciesVariantId === variantId);
+                setNewItem({
+                  ...newItem,
+                  SpeciesVariantId: variantId,
+                  SpeciesId: selected?.SpeciesId || null
+                });
+              }}
             />
             <NumberInput
               label={t('Quantity')}
@@ -224,8 +245,8 @@ function SalesPage() {
               label={t('Unit Price')}
               min={0}
               step={0.01}
-              value={newItem.UnitPrice}
-              onChange={(value) => setNewItem({ ...newItem, UnitPrice: value || 0 })}
+              value={newItem.UnitPrice ?? ''}
+              onChange={(value) => setNewItem({ ...newItem, UnitPrice: value })}
             />
           </Group>
           <Button variant="light" onClick={handleAddItem}>
@@ -240,7 +261,7 @@ function SalesPage() {
                 <Paper key={index} p="sm" radius="sm" withBorder>
                   <Group justify="space-between">
                     <Text size="sm">
-                      {catalogMap[item.SpeciesId]} - Qty: {item.Quantity} x ${item.UnitPrice.toFixed(2)}
+                      {catalogMap[item.SpeciesVariantId]?.label || `Species #${item.SpeciesId}`} - Qty: {item.Quantity} x ${item.UnitPrice.toFixed(2)}
                     </Text>
                     <Group gap="xs">
                       <Text fw={700}>${(item.Quantity * item.UnitPrice).toFixed(2)}</Text>

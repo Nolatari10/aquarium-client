@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Button, Table, Modal, TextInput, Select, Group, Text, ActionIcon, Box, Stack, Badge, Paper, Checkbox, Pagination, Loader } from '@mantine/core';
+import { Button, Table, Modal, TextInput, Select, NumberInput, Group, Text, ActionIcon, Box, Stack, Badge, Paper, Checkbox, Pagination, Loader } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
 import { IconPlus, IconEdit, IconTrash, IconSearch, IconFileImport, IconUpload, IconTrashX } from '@tabler/icons-react';
@@ -104,10 +104,10 @@ function SpeciesPage() {
     CommonName: '',
     ScientificName: '',
     Category: 'Fish',
-    MinTemperature: 0,
-    MaxTemperature: 0,
-    MinPH: 0,
-    MaxPH: 0,
+    MinTemperature: '',
+    MaxTemperature: '',
+    MinPH: '',
+    MaxPH: '',
     ImageUrl: ''
   });
 
@@ -157,15 +157,28 @@ function SpeciesPage() {
     try {
       setDeleting(true);
       const response = await speciesApi.bulkDelete(selectedIds);
-      notifications.show({
-        title: 'Deleted',
-        message: `${response.data.Deleted} species removed`,
-        color: 'green'
-      });
+      const result = response.data;
+      if (result.Skipped > 0) {
+        notifications.show({
+          title: 'Partial',
+          message: `${result.Deleted} deleted, ${result.Skipped} skipped (linked lots).`,
+          color: 'orange'
+        });
+      } else {
+        notifications.show({
+          title: 'Deleted',
+          message: `${result.Deleted} species removed`,
+          color: 'green'
+        });
+      }
       closeBulkDelete();
-      refreshSpecies;
-    } catch {
-      notifications.show({ title: 'Error', message: 'Failed to delete species', color: 'red' });
+      refreshSpecies();
+    } catch (e) {
+      notifications.show({
+        title: 'Error',
+        message: e.response?.data?.ErrorMessage || e.response?.data || 'Failed to delete species',
+        color: 'red'
+      });
     } finally { setDeleting(false); }
   };
 
@@ -242,16 +255,23 @@ function SpeciesPage() {
   const handleSubmit = async () => {
     try {
       setLoading(true);
+      const data = {
+        ...formData,
+        MinTemperature: formData.MinTemperature === '' ? null : parseFloat(formData.MinTemperature),
+        MaxTemperature: formData.MaxTemperature === '' ? null : parseFloat(formData.MaxTemperature),
+        MinPH: formData.MinPH === '' ? null : parseFloat(formData.MinPH),
+        MaxPH: formData.MaxPH === '' ? null : parseFloat(formData.MaxPH),
+      };
       if (editingSpecies) {
-        await speciesApi.update(editingSpecies.Id, formData);
+        await speciesApi.update(editingSpecies.Id, data);
         notifications.show({ title: 'Success', message: t('Species updated'), color: 'green' });
       } else {
-        await speciesApi.create(formData);
+        await speciesApi.create(data);
         notifications.show({ title: 'Success', message: t('Species created'), color: 'green' });
       }
       close();
       resetForm();
-      refreshSpecies;
+      refreshSpecies();
     } catch (e) {
       notifications.show({ title: 'Error', message: e.response?.data?.ErrorMessage || t('Operation failed'), color: 'red' });
     } finally { setLoading(false); }
@@ -263,10 +283,10 @@ function SpeciesPage() {
       CommonName: item.CommonName || '',
       ScientificName: item.ScientificName || '',
       Category: item.Category || 'Fish',
-      MinTemperature: item.MinTemperature || 0,
-      MaxTemperature: item.MaxTemperature || 0,
-      MinPH: item.MinPH || 0,
-      MaxPH: item.MaxPH || 0,
+      MinTemperature: item.MinTemperature == null ? '' : item.MinTemperature,
+      MaxTemperature: item.MaxTemperature == null ? '' : item.MaxTemperature,
+      MinPH: item.MinPH == null ? '' : item.MinPH,
+      MaxPH: item.MaxPH == null ? '' : item.MaxPH,
       ImageUrl: item.ImageUrl || ''
     });
     open();
@@ -277,7 +297,7 @@ function SpeciesPage() {
     try {
       await speciesApi.delete(id);
       notifications.show({ title: 'Success', message: t('Species deleted'), color: 'green' });
-      refreshSpecies;
+      refreshSpecies();
     } catch {
       notifications.show({ title: 'Error', message: 'Failed to delete species', color: 'red' });
     }
@@ -287,7 +307,7 @@ function SpeciesPage() {
     setEditingSpecies(null);
     setFormData({
       CommonName: '', ScientificName: '', Category: 'Fish',
-      MinTemperature: 0, MaxTemperature: 0, MinPH: 0, MaxPH: 0, ImageUrl: ''
+      MinTemperature: '', MaxTemperature: '', MinPH: '', MaxPH: '', ImageUrl: ''
     });
   };
 
@@ -394,12 +414,12 @@ function SpeciesPage() {
             <TextInput label={t('Variety')} value={formData.Variety} onChange={(e) => setFormData({ ...formData, Variety: e.target.value })} />
             <Select label={t('Category')} value={formData.Category} onChange={(value) => setFormData({ ...formData, Category: value })} data={['Fish', 'Invertebrate', 'Plant', 'Coral', 'Other']} />
             <Group grow>
-              <TextInput label="Min Temp (°C)" type="number" step="0.1" value={formData.MinTemperature} onChange={(e) => setFormData({ ...formData, MinTemperature: parseFloat(e.target.value) })} />
-              <TextInput label="Max Temp (°C)" type="number" step="0.1" value={formData.MaxTemperature} onChange={(e) => setFormData({ ...formData, MaxTemperature: parseFloat(e.target.value) })} />
+              <NumberInput label="Min Temp (°C)" decimalScale={1} step={0.1} value={formData.MinTemperature ?? ''} onChange={(v) => setFormData({ ...formData, MinTemperature: v })} />
+              <NumberInput label="Max Temp (°C)" decimalScale={1} step={0.1} value={formData.MaxTemperature ?? ''} onChange={(v) => setFormData({ ...formData, MaxTemperature: v })} />
             </Group>
             <Group grow>
-              <TextInput label="Min pH" type="number" step="0.1" value={formData.MinPH} onChange={(e) => setFormData({ ...formData, MinPH: parseFloat(e.target.value) })} />
-              <TextInput label="Max pH" type="number" step="0.1" value={formData.MaxPH} onChange={(e) => setFormData({ ...formData, MaxPH: parseFloat(e.target.value) })} />
+              <NumberInput label="Min pH" decimalScale={1} step={0.1} value={formData.MinPH ?? ''} onChange={(v) => setFormData({ ...formData, MinPH: v })} />
+              <NumberInput label="Max pH" decimalScale={1} step={0.1} value={formData.MaxPH ?? ''} onChange={(v) => setFormData({ ...formData, MaxPH: v })} />
             </Group>
             <TextInput label="Image URL" value={formData.ImageUrl} onChange={(e) => setFormData({ ...formData, ImageUrl: e.target.value })} />
             <Group justify="flex-end" mt="md">

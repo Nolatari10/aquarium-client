@@ -8,11 +8,13 @@ import { notifications } from '@mantine/notifications';
 import { IconPlus, IconAlertTriangle, IconSearch } from '@tabler/icons-react';
 import { inventoryLotsApi } from '../api/inventoryLots';
 import { speciesApi } from '../api/species';
+import { speciesVariantsApi } from '../api/speciesVariantsApi';
 import { suppliersApi } from '../api/suppliers';
 import { useTranslation } from 'react-i18next';
+
 function InventoryLotsPage() {
   const [lots, setLots] = useState([]);
-  const [species, setSpecies] = useState([]);
+  const [variantOptions, setVariantOptions] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
@@ -25,19 +27,18 @@ function InventoryLotsPage() {
   const pageSize = 20;
   const { t } = useTranslation();
   const [formData, setFormData] = useState({
-    SpeciesName: '',
-    SpeciesId: null,
+    SpeciesVariantId: null,
     SupplierId: null,
     ArrivalDate: new Date().toISOString().split('T')[0],
-    InitialQuantity: 0,
-    DeadOnArrival: 0,
-    UnitCost: 0,
+    InitialQuantity: '',
+    DeadOnArrival: '',
+    UnitCost: '',
     Notes: ''
   });
 
   const [mortalityData, setMortalityData] = useState({
     Date: new Date().toISOString().split('T')[0],
-    Quantity: 0,
+    Quantity: '',
     Cause: 'Disease',
     Notes: ''
   });
@@ -55,7 +56,30 @@ function InventoryLotsPage() {
         speciesApi.getAll(1, 1000),
         suppliersApi.getAll(),
       ]);
-      if (speciesResult.status === 'fulfilled') setSpecies(speciesResult.value.data.Items || []);
+      if (speciesResult.status === 'fulfilled') {
+        const speciesList = speciesResult.value.data.Items || [];
+
+        // Load all variants for all species in parallel
+        const variantPromises = speciesList.map(s =>
+          speciesVariantsApi.getBySpeciesId(s.Id)
+            .then(r => r.data || [])
+            .catch(() => [])
+        );
+        const allVariantArrays = await Promise.allSettled(variantPromises);
+
+        // Build combined dropdown: CommonName — VariantName → SpeciesVariantId
+        const combined = [];
+        speciesList.forEach((s, i) => {
+          const vars = allVariantArrays[i]?.status === 'fulfilled' ? allVariantArrays[i].value : [];
+          vars.forEach(v => {
+            combined.push({
+              value: v.Id.toString(),
+              label: `${s.CommonName} — ${v.VariantName}`
+            });
+          });
+        });
+        setVariantOptions(combined);
+      }
       if (suppliersResult.status === 'fulfilled') setSuppliers(suppliersResult.value.data);
     } catch { /* ignore */ }
   };
@@ -77,13 +101,22 @@ function InventoryLotsPage() {
   const refreshLots = () => { setPage(1); loadLots(1); };
 
   const handleSubmit = async () => {
+    if (!formData.SpeciesVariantId) {
+      notifications.show({ title: 'Error', message: 'Please select a species variant.', color: 'red' });
+      return;
+    }
     try {
       setLoading(true);
-      await inventoryLotsApi.create(formData);
+      await inventoryLotsApi.create({
+        ...formData,
+        InitialQuantity: formData.InitialQuantity === '' ? 0 : parseInt(formData.InitialQuantity),
+        DeadOnArrival: formData.DeadOnArrival === '' ? 0 : parseInt(formData.DeadOnArrival),
+        UnitCost: formData.UnitCost === '' ? 0 : parseFloat(formData.UnitCost),
+      });
       notifications.show({ title: 'Success', message: 'Lot created', color: 'green' });
       setActiveTab('list');
       resetForm();
-      refreshLots;
+      refreshLots();
     } catch (e) {
       notifications.show({
         title: 'Error',
@@ -97,17 +130,17 @@ function InventoryLotsPage() {
 
   const handleRegisterMortality = async () => {
     if (!selectedLot) return;
-    
     try {
       setLoading(true);
       await inventoryLotsApi.registerMortality({
         InventoryLotId: selectedLot.Id,
-        ...mortalityData
+        ...mortalityData,
+        Quantity: mortalityData.Quantity === '' ? 0 : parseInt(mortalityData.Quantity),
       });
       notifications.show({ title: 'Success', message: 'Mortality registered', color: 'green' });
       closeMortality();
-      setMortalityData({ Date: new Date().toISOString().split('T')[0], Quantity: 0, Cause: 'Disease', Notes: '' });
-      refreshLots;
+      setMortalityData({ Date: new Date().toISOString().split('T')[0], Quantity: '', Cause: 'Disease', Notes: '' });
+      refreshLots();
     } catch {
       notifications.show({
         title: 'Error',
@@ -121,13 +154,12 @@ function InventoryLotsPage() {
 
   const resetForm = () => {
     setFormData({
-      SpeciesName: '',
-      SpeciesId: null,
+      SpeciesVariantId: null,
       SupplierId: null,
       ArrivalDate: new Date().toISOString().split('T')[0],
-      InitialQuantity: 0,
-      DeadOnArrival: 0,
-      UnitCost: 0,
+      InitialQuantity: '',
+      DeadOnArrival: '',
+      UnitCost: '',
       Notes: ''
     });
   };
@@ -144,29 +176,30 @@ function InventoryLotsPage() {
     return { label: t('Available'), color: 'green' };
   };
 
-  const speciesMap = {};
-  species.forEach(s => speciesMap[s.Id] = s.CommonName);
-  
   const supplierMap = {};
   suppliers.forEach(s => supplierMap[s.Id] = s.Name);
 
+  const displayName = (lot) => {
+    if (lot.VariantName && lot.VariantName !== 'Standard') {
+      return `${lot.SpeciesCommonName} — ${lot.VariantName}`;
+    }
+    return lot.SpeciesCommonName || lot.SpeciesName || 'Unknown';
+  };
+
   const filteredLots = lots.filter(lot =>
     !search ||
+    (lot.SpeciesCommonName || '').toLowerCase().includes(search.toLowerCase()) ||
+    (lot.VariantName || '').toLowerCase().includes(search.toLowerCase()) ||
     (lot.SpeciesName || '').toLowerCase().includes(search.toLowerCase()) ||
-    (speciesMap[lot.SpeciesId] || '').toLowerCase().includes(search.toLowerCase()) ||
     (supplierMap[lot.SupplierId] || '').toLowerCase().includes(search.toLowerCase())
   );
 
   const rows = filteredLots.map((item) => {
     const status = getStockStatus(item);
-    const catalogName = speciesMap[item.SpeciesId];
     return (
       <Table.Tr key={item.Id}>
         <Table.Td fw={500}>
-          {item.SpeciesName || catalogName || 'Unknown'}
-          {catalogName && item.SpeciesName !== catalogName && (
-            <Text size="xs" c="dimmed">{catalogName}</Text>
-          )}
+          {displayName(item)}
         </Table.Td>
         <Table.Td>{supplierMap[item.SupplierId] || 'N/A'}</Table.Td>
         <Table.Td>{new Date(item.ArrivalDate).toLocaleDateString()}</Table.Td>
@@ -239,20 +272,14 @@ function InventoryLotsPage() {
           <Paper p="lg" radius="md" withBorder style={{ maxWidth: 600 }}>
             <form onSubmit={(e) => { e.preventDefault(); handleSubmit(); }}>
               <Stack gap="sm">
-                <TextInput
-                  label="Species name (free text)"
-                  description="Commercial name used by the seller (e.g. 'blue ram', 'ramirezi azul')"
-                  required
-                  value={formData.SpeciesName}
-                  onChange={(e) => setFormData({ ...formData, SpeciesName: e.target.value })}
-                />
                 <Select
-                  label="Species (catalog)"
-                  description="Optional — link to a normalized species record"
-                  clearable
-                  data={species.map(s => ({ value: s.Id.toString(), label: s.CommonName }))}
-                  value={formData.SpeciesId?.toString() || ''}
-                  onChange={(value) => setFormData({ ...formData, SpeciesId: value ? parseInt(value) : null })}
+                  label="Species — Variant"
+                  placeholder="Select species and variant"
+                  required
+                  searchable
+                  data={variantOptions}
+                  value={formData.SpeciesVariantId?.toString() || null}
+                  onChange={(value) => setFormData({ ...formData, SpeciesVariantId: value ? parseInt(value) : null })}
                 />
                 <Select
                   label="Supplier"
@@ -274,13 +301,13 @@ function InventoryLotsPage() {
                     required
                     min={0}
                     value={formData.InitialQuantity}
-                    onChange={(value) => setFormData({ ...formData, InitialQuantity: value || 0 })}
+                    onChange={(value) => setFormData({ ...formData, InitialQuantity: value })}
                   />
                   <NumberInput
                     label="Dead on Arrival"
                     min={0}
                     value={formData.DeadOnArrival}
-                    onChange={(value) => setFormData({ ...formData, DeadOnArrival: value || 0 })}
+                    onChange={(value) => setFormData({ ...formData, DeadOnArrival: value })}
                   />
                 </Group>
                 <NumberInput
@@ -289,7 +316,7 @@ function InventoryLotsPage() {
                   min={0}
                   step={0.01}
                   value={formData.UnitCost}
-                  onChange={(value) => setFormData({ ...formData, UnitCost: value || 0 })}
+                  onChange={(value) => setFormData({ ...formData, UnitCost: value })}
                 />
                 <Textarea
                   label="Notes"
@@ -307,7 +334,7 @@ function InventoryLotsPage() {
         {selectedLot && (
           <form onSubmit={(e) => { e.preventDefault(); handleRegisterMortality(); }}>
             <Stack gap="sm">
-              <Text size="sm">Lot: {selectedLot.SpeciesName || speciesMap[selectedLot.SpeciesId] || 'Unknown'} (Stock: {selectedLot.CurrentStock || 0})</Text>
+              <Text size="sm">Lot: {displayName(selectedLot)} (Stock: {selectedLot.CurrentStock || 0})</Text>
               <TextInput
                 label="Date"
                 type="date"
@@ -321,7 +348,7 @@ function InventoryLotsPage() {
                 min={1}
                 max={selectedLot.CurrentStock || 0}
                 value={mortalityData.Quantity}
-                onChange={(value) => setMortalityData({ ...mortalityData, Quantity: value || 0 })}
+                onChange={(value) => setMortalityData({ ...mortalityData, Quantity: value })}
               />
               <Select
                 label="Cause"

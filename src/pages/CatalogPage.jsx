@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Card, Text, SimpleGrid, Group, Badge, Box, TextInput, Stack, Pagination, Loader } from '@mantine/core';
+import { Card, Text, SimpleGrid, Group, Badge, Box, TextInput, Stack, Pagination, Loader, Image } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { IconSearch } from '@tabler/icons-react';
 import { catalogApi } from '../api/catalog';
@@ -42,6 +42,7 @@ function CatalogPage() {
     if (!searchTerm) return true;
     return (
       (item.CommonName || '').toLowerCase().includes(searchTerm) ||
+      (item.VariantName || '').toLowerCase().includes(searchTerm) ||
       (item.ScientificName || '').toLowerCase().includes(searchTerm) ||
       (item.Category || '').toLowerCase().includes(searchTerm)
     );
@@ -71,9 +72,21 @@ function CatalogPage() {
         <>
           <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} spacing="lg">
           {filteredCatalog.map((item) => (
-            <Card key={item.SpeciesId} padding="lg" radius="md" withBorder>
-              <Group justify="space-between" mb="sm">
-                <Text fw={700} size="lg">{item.CommonName}</Text>
+            <Card key={item.SpeciesVariantId} padding="lg" radius="md" withBorder>
+              {item.ImageUrl && (
+                <Card.Section mb="sm">
+                  <Image src={item.ImageUrl} height={120} fit="cover" alt={item.VariantName} />
+                </Card.Section>
+              )}
+              <Group justify="space-between" mb="xs">
+                <Box>
+                  <Text fw={700} size="lg">
+                    {item.VariantName !== 'Standard' ? item.VariantName : item.CommonName}
+                  </Text>
+                  {item.VariantName !== 'Standard' && (
+                    <Text size="xs" c="dimmed" fs="italic">{item.CommonName}</Text>
+                  )}
+                </Box>
                 {getStockBadge(item.TotalStock)}
               </Group>
               
@@ -83,22 +96,15 @@ function CatalogPage() {
                 <Text size="sm" c="dimmed">{t('Category')}</Text>
                 <Text size="sm" fw={500}>{item.Category}</Text>
               </Group>
-              
-              <Group justify="space-between" mb="xs">
-                <Text size="sm" c="dimmed">{t('Variety')}</Text>
-                <Text size="sm" fw={500}>{item.Variety}</Text>
-              </Group>
-              
+
               <Group justify="space-between" mb="xs">
                 <Text size="sm" c="dimmed">{t('Units Available')}</Text>
-                <Text size="sm" fw={500}>{item.CurrentBiologicalStock}</Text>
+                <Text size="sm" fw={500}>{item.TotalStock}</Text>
               </Group>
-              
+
               <Group justify="space-between">
-                <Text size="sm" c="dimmed">{t('Oldest Lot')}</Text>
-                <Text size="sm" fw={500}>
-                  {item.OldestArrivalDate ? new Date(item.OldestArrivalDate).toLocaleDateString() : t('N/A')}
-                </Text>
+                <Text size="sm" c="dimmed">{t('Latest Unit Cost')}</Text>
+                <Text size="sm" fw={500}>${item.LatestUnitCost?.toFixed(2) || '0.00'}</Text>
               </Group>
             </Card>
           ))}
