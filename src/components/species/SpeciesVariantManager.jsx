@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button, TextInput, Textarea, Group, Text, ActionIcon, Badge, Stack, Paper, Modal, Loader } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
@@ -14,7 +14,7 @@ export default function SpeciesVariantManager({ speciesId, speciesName }) {
   const [form, setForm] = useState({ VariantName: '', Notes: '', ImageUrl: '' });
   const { t } = useTranslation();
 
-  const loadVariants = async () => {
+  const loadVariants = useCallback(async () => {
     try {
       setLoading(true);
       const r = await speciesVariantsApi.getBySpeciesId(speciesId);
@@ -24,11 +24,11 @@ export default function SpeciesVariantManager({ speciesId, speciesName }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [speciesId]);
 
   useEffect(() => {
     if (speciesId) loadVariants();
-  }, [speciesId]);
+  }, [speciesId, loadVariants]);
 
   const handleCreate = () => {
     setEditing(null);

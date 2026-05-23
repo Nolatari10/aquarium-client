@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button, Table, Modal, TextInput, Textarea, Group, Text, ActionIcon, Box, Stack } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
@@ -23,9 +23,19 @@ function SuppliersPage() {
     Notes: ''
   });
 
+  const loadSuppliers = useCallback(async () => {
+    try {
+      const response = await suppliersApi.getAll();
+      setSuppliers(response.data);
+      setFilteredSuppliers(response.data);
+    } catch {
+      notifications.show({ title: t('Error'), message: t('Failed to load suppliers'), color: 'red' });
+    }
+  }, [t]);
+
   useEffect(() => {
     loadSuppliers();
-  }, []);
+  }, [loadSuppliers]);
 
   useEffect(() => {
     const term = search.toLowerCase();
@@ -36,16 +46,6 @@ function SuppliersPage() {
     );
     setFilteredSuppliers(filtered);
   }, [search, suppliers]);
-
-  const loadSuppliers = async () => {
-    try {
-      const response = await suppliersApi.getAll();
-      setSuppliers(response.data);
-      setFilteredSuppliers(response.data);
-    } catch {
-      notifications.show({ title: t('Error'), message: t('Failed to load suppliers'), color: 'red' });
-    }
-  };
 
   const handleSubmit = async () => {
     try {

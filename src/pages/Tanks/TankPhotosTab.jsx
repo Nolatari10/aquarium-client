@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button, Group, Stack, Text, Modal, TextInput, Textarea, SimpleGrid, Image, ActionIcon, Loader, Card } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
@@ -18,7 +18,7 @@ function TankPhotosTab({ tankId }) {
     LinkedLogId: '',
   });
 
-  const loadPhotos = async () => {
+  const loadPhotos = useCallback(async () => {
     try {
       setLoading(true);
       const res = await tanksApi.getPhotos(tankId, { pageSize: 50 });
@@ -26,9 +26,9 @@ function TankPhotosTab({ tankId }) {
     } catch {
       notifications.show({ title: 'Error', message: 'Failed to load photos', color: 'red' });
     } finally { setLoading(false); }
-  };
+  }, [tankId]);
 
-  useEffect(() => { loadPhotos(); }, [tankId]);
+  useEffect(() => { loadPhotos(); }, [loadPhotos]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

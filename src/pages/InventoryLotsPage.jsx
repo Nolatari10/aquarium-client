@@ -4,6 +4,7 @@ import {
   ActionIcon, Box, Badge, Tabs, NumberInput, Stack, Paper, Pagination, Loader
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
+import { useNavigate } from 'react-router-dom';
 import { notifications } from '@mantine/notifications';
 import { IconPlus, IconAlertTriangle, IconSearch } from '@tabler/icons-react';
 import { inventoryLotsApi } from '../api/inventoryLots';
@@ -26,6 +27,7 @@ function InventoryLotsPage() {
   const [listLoading, setListLoading] = useState(false);
   const pageSize = 20;
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     SpeciesVariantId: null,
     SupplierId: null,
@@ -197,7 +199,11 @@ function InventoryLotsPage() {
   const rows = filteredLots.map((item) => {
     const status = getStockStatus(item);
     return (
-      <Table.Tr key={item.Id}>
+      <Table.Tr
+        key={item.Id}
+        style={{ cursor: 'pointer' }}
+        onClick={() => navigate(`/inventory/${item.Id}`)}
+      >
         <Table.Td fw={500}>
           {displayName(item)}
         </Table.Td>
@@ -207,7 +213,11 @@ function InventoryLotsPage() {
         <Table.Td>{item.CurrentStock || 0}</Table.Td>
         <Table.Td><Badge color={status.color}>{status.label}</Badge></Table.Td>
         <Table.Td>
-          <ActionIcon variant="subtle" color="orange" onClick={() => handleOpenMortality(item)}>
+          <ActionIcon
+            variant="subtle"
+            color="orange"
+            onClick={(e) => { e.stopPropagation(); handleOpenMortality(item); }}
+          >
             <IconAlertTriangle size={18} />
           </ActionIcon>
         </Table.Td>

@@ -28,6 +28,7 @@ function ReportsPage() {
   const [loadingValuation, setLoadingValuation] = useState(false);
   const [loadingSupplierPerf, setLoadingSupplierPerf] = useState(false);
   const [loadingTurnover, setLoadingTurnover] = useState(false);
+  const [loadingProfitability, setLoadingProfitability] = useState(false);
 
   const [stockReport, setStockReport] = useState(null);
   const [mortalityReport, setMortalityReport] = useState(null);
@@ -35,6 +36,7 @@ function ReportsPage() {
   const [valuationReport, setValuationReport] = useState(null);
   const [supplierPerfReport, setSupplierPerfReport] = useState(null);
   const [turnoverReport, setTurnoverReport] = useState(null);
+  const [profitabilityReport, setProfitabilityReport] = useState(null);
 
   const [speciesList, setSpeciesList] = useState([]);
   const [supplierList, setSupplierList] = useState([]);
@@ -59,6 +61,11 @@ function ReportsPage() {
   const [turnoverFilters, setTurnoverFilters] = useState({
     speciesId: null,
     supplierId: null,
+  });
+
+  const [profitabilityFilters, setProfitabilityFilters] = useState({
+    startDate: getDefaultStart(),
+    endDate: getDefaultEnd(),
   });
 
   useEffect(() => {
@@ -138,6 +145,20 @@ function ReportsPage() {
     } finally { setLoadingTurnover(false); }
   };
 
+  const loadProfitability = async () => {
+    if (!profitabilityFilters.startDate || !profitabilityFilters.endDate) {
+      notifications.show({ title: 'Error', message: t('Select date range'), color: 'red' });
+      return;
+    }
+    try {
+      setLoadingProfitability(true);
+      const r = await reportsApi.getProfitability(profitabilityFilters.startDate, profitabilityFilters.endDate);
+      setProfitabilityReport(r.data);
+    } catch {
+      notifications.show({ title: 'Error', message: t('Failed to load profitability report'), color: 'red' });
+    } finally { setLoadingProfitability(false); }
+  };
+
   const speciesOptions = speciesList.filter(s => s.Id != null).map(s => ({ value: String(s.Id), label: s.CommonName }));
   const supplierOptions = supplierList.filter(s => s.Id != null).map(s => ({ value: String(s.Id), label: s.Name }));
 
@@ -153,6 +174,7 @@ function ReportsPage() {
           <Tabs.Tab value="valuation">{t('Valuation')}</Tabs.Tab>
           <Tabs.Tab value="supplier-performance">{t('Suppliers')}</Tabs.Tab>
           <Tabs.Tab value="inventory-turnover">{t('Aging')}</Tabs.Tab>
+          <Tabs.Tab value="profitability">{t('Profitability')}</Tabs.Tab>
         </Tabs.List>
 
         {/* STOCK REPORT */}
@@ -622,6 +644,91 @@ function ReportsPage() {
                             </Badge>
                           </Table.Td>
                           <Table.Td fw={500} c={lot.AgingStatus === 'Old' ? 'red.7' : undefined}>${lot.CostAtRisk.toFixed(2)}</Table.Td>
+                        </Table.Tr>
+                      ))}
+                    </Table.Tbody>
+                  </Table>
+                </Card>
+              </>
+            )}
+          </Stack>
+        </Tabs.Panel>
+
+        {/* PROFITABILITY REPORT */}
+        <Tabs.Panel value="profitability">
+          <Stack gap="lg">
+            <Paper p="lg" radius="md" withBorder>
+              <Stack gap="sm">
+                <Text fw={500} size="sm">{t('Filters')}</Text>
+                <Group grow>
+                  <TextInput type="date" label={t('Start Date')} value={profitabilityFilters.startDate} onChange={(e) => setProfitabilityFilters({ ...profitabilityFilters, startDate: e.target.value })} />
+                  <TextInput type="date" label={t('End Date')} value={profitabilityFilters.endDate} onChange={(e) => setProfitabilityFilters({ ...profitabilityFilters, endDate: e.target.value })} />
+                </Group>
+                <Group justify="space-between">
+                  <Button onClick={loadProfitability} loading={loadingProfitability} variant="light">{t('Load Report')}</Button>
+                  {profitabilityReport && (
+                    <Group gap="xs">
+                      <ExportCSV data={profitabilityReport.BySpecies || []} fileName="profitability_report.csv" />
+                      <ExportPDF data={profitabilityReport} title={t('Profitability Report')} fileName="Profitability_Report.pdf" />
+                    </Group>
+                  )}
+                </Group>
+              </Stack>
+            </Paper>
+
+            {!profitabilityReport && !loadingProfitability && (
+              <Paper p="xl" ta="center" withBorder><Text c="dimmed">{t('No data loaded')}</Text></Paper>
+            )}
+
+            {profitabilityReport && profitabilityReport.BySpecies.length === 0 ? (
+              <Paper p="xl" ta="center" withBorder><Text c="dimmed">{t('No sales in selected period')}</Text></Paper>
+            ) : profitabilityReport && (
+              <>
+                <SimpleGrid cols={{ base: 1, sm: 4 }} spacing="lg">
+                  <Card padding="lg" radius="md" withBorder>
+                    <Text size="sm" c="dimmed">{t('Total Revenue')}</Text>
+                    <Text size="xl" fw={700} c="teal.7">${profitabilityReport.TotalRevenue.toFixed(2)}</Text>
+                  </Card>
+                  <Card padding="lg" radius="md" withBorder>
+                    <Text size="sm" c="dimmed">{t('Total Cost')}</Text>
+                    <Text size="xl" fw={700} c="orange.7">${profitabilityReport.TotalCost.toFixed(2)}</Text>
+                  </Card>
+                  <Card padding="lg" radius="md" withBorder>
+                    <Text size="sm" c="dimmed">{t('Gross Profit')}</Text>
+                    <Text size="xl" fw={700} c={profitabilityReport.GrossProfit >= 0 ? 'green.7' : 'red.7'}>${profitabilityReport.GrossProfit.toFixed(2)}</Text>
+                  </Card>
+                  <Card padding="lg" radius="md" withBorder>
+                    <Text size="sm" c="dimmed">{t('Profit Margin')}</Text>
+                    <Text size="xl" fw={700} c={profitabilityReport.ProfitMarginPercent >= 0 ? 'green.7' : 'red.7'}>{profitabilityReport.ProfitMarginPercent}%</Text>
+                  </Card>
+                </SimpleGrid>
+
+                <Card padding="lg" radius="md" withBorder>
+                  <Text fw={700} mb="md">{t('Profitability by Species')}</Text>
+                  <Table>
+                    <Table.Thead>
+                      <Table.Tr>
+                        <Table.Th>{t('Species')}</Table.Th>
+                        <Table.Th>{t('Category')}</Table.Th>
+                        <Table.Th>{t('Sold')}</Table.Th>
+                        <Table.Th>{t('Revenue')}</Table.Th>
+                        <Table.Th>{t('Cost')}</Table.Th>
+                        <Table.Th>{t('Profit')}</Table.Th>
+                        <Table.Th>{t('Margin')}</Table.Th>
+                      </Table.Tr>
+                    </Table.Thead>
+                    <Table.Tbody>
+                      {profitabilityReport.BySpecies.map((s) => (
+                        <Table.Tr key={s.SpeciesId} style={s.Profit < 0 ? { backgroundColor: 'rgba(255,0,0,0.04)' } : undefined}>
+                          <Table.Td fw={500}>{s.CommonName}</Table.Td>
+                          <Table.Td>{s.Category}</Table.Td>
+                          <Table.Td>{s.QuantitySold}</Table.Td>
+                          <Table.Td>${s.Revenue.toFixed(2)}</Table.Td>
+                          <Table.Td>${s.Cost.toFixed(2)}</Table.Td>
+                          <Table.Td fw={500} c={s.Profit >= 0 ? 'green.7' : 'red.7'}>${s.Profit.toFixed(2)}</Table.Td>
+                          <Table.Td>
+                            <Badge color={s.MarginPercent >= 0 ? 'green' : 'red'} variant="light">{s.MarginPercent}%</Badge>
+                          </Table.Td>
                         </Table.Tr>
                       ))}
                     </Table.Tbody>

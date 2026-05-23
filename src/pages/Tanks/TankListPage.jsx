@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button, Table, Group, Text, ActionIcon, Badge, Box, Stack, TextInput, Select, ThemeIcon, Loader } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
@@ -55,7 +55,7 @@ function TankListPage() {
   const [statusFilter, setStatusFilter] = useState(null);
 
   // Fetches tanks with optional type/status filters from the API
-  const loadTanks = async () => {
+  const loadTanks = useCallback(async () => {
     try {
       setLoading(true);
       const params = { isActive: true };
@@ -71,9 +71,9 @@ function TankListPage() {
     } catch {
       notifications.show({ title: t('Error'), message: t('Failed to load tanks'), color: 'red' });
     } finally { setLoading(false); }
-  };
+  }, [typeFilter, statusFilter, t]);
 
-  useEffect(() => { loadTanks(); }, [typeFilter, statusFilter]);
+  useEffect(() => { loadTanks(); }, [loadTanks]);
 
   // Soft-deletes a tank and refreshes the list
   const handleDelete = async (id) => {

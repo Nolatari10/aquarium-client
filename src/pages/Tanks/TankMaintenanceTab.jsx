@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button, Group, Stack, Text, Table, Modal, Select, NumberInput, Textarea, Loader, Progress, TextInput } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
@@ -34,7 +34,7 @@ function TankMaintenanceTab({ tankId }) {
     ReminderFrequencyDays: '',
   });
 
-  const loadLogs = async () => {
+  const loadLogs = useCallback(async () => {
     try {
       setLoading(true);
       const res = await tanksApi.getMaintenance(tankId, { pageSize: 50 });
@@ -42,9 +42,9 @@ function TankMaintenanceTab({ tankId }) {
     } catch {
       notifications.show({ title: 'Error', message: 'Failed to load maintenance', color: 'red' });
     } finally { setLoading(false); }
-  };
+  }, [tankId]);
 
-  useEffect(() => { loadLogs(); }, [tankId]);
+  useEffect(() => { loadLogs(); }, [loadLogs]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

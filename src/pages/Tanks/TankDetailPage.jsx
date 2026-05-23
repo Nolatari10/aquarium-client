@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Tabs, Group, Text, Badge, ActionIcon, Box, Loader, Stack } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
@@ -35,7 +35,7 @@ function TankDetailPage() {
   const [activeTab, setActiveTab] = useState('overview');
 
   // Loads full tank detail (with indicators) on mount
-  const loadTank = async () => {
+  const loadTank = useCallback(async () => {
     try {
       setLoading(true);
       const res = await tanksApi.getById(id);
@@ -44,9 +44,9 @@ function TankDetailPage() {
       notifications.show({ title: 'Error', message: t('Failed to load tank'), color: 'red' });
       navigate('/tanks');
     } finally { setLoading(false); }
-  };
+  }, [id, t, navigate]);
 
-  useEffect(() => { loadTank(); }, [id]);
+  useEffect(() => { loadTank(); }, [loadTank]);
 
   if (loading) return <Stack align="center" py="xl"><Loader /></Stack>;
   if (!tank) return <Text>{t('Tank not found')}</Text>;

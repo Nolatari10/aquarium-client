@@ -8,4 +8,6 @@ export const reportsApi = {
   getInventoryValuation: () => apiClient.get('/Reports/valuation'),
   getSupplierPerformance: (params) => apiClient.get('/Reports/supplier-performance', { params }),
   getInventoryTurnover: (params) => apiClient.get('/Reports/inventory-turnover', { params }),
+  getProfitability: (startDate, endDate) =>
+    apiClient.get('/Reports/profitability', { params: { startDate, endDate } }),
 };

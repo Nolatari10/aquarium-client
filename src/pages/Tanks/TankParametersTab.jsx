@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button, Group, Stack, Text, Table, Modal, TextInput, NumberInput, Textarea, Loader } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
@@ -31,16 +31,16 @@ function TankParametersTab({ tankId }) {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [form, setForm] = useState({ MeasuredAt: new Date().toISOString().slice(0, 16), Notes: '' });
 
-  const loadLogs = async () => {
+  const loadLogs = useCallback(async () => {
     try {
       setLoading(true);
       const res = await tanksApi.getWaterParameters(tankId, { pageSize: 100 });
       setLogs(res.data || []);
     } catch { notifications.show({ title: 'Error', message: 'Failed to load parameters', color: 'red' }); }
     finally { setLoading(false); }
-  };
+  }, [tankId]);
 
-  useEffect(() => { loadLogs(); }, [tankId]);
+  useEffect(() => { loadLogs(); }, [loadLogs]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

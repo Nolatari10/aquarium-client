@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Button, Group, Stack, Text, Table, Modal, Select, NumberInput, Textarea, Badge, Switch, Loader, TextInput } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
@@ -30,7 +30,7 @@ function TankFertilizationTab({ tankId }) {
   });
 
   // Loads both fertilization logs and fertilizer presets in parallel
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       setLoading(true);
       const [logsRes, presetsRes] = await Promise.all([
@@ -41,9 +41,9 @@ function TankFertilizationTab({ tankId }) {
       setPresets(presetsRes.data || []);
     } catch { notifications.show({ title: 'Error', message: 'Failed to load data', color: 'red' }); }
     finally { setLoading(false); }
-  };
+  }, [tankId]);
 
-  useEffect(() => { loadData(); }, [tankId]);
+  useEffect(() => { loadData(); }, [loadData]);
 
   // When a preset is selected, auto-fills dose amount, unit, and estimated ppm values
   const handlePresetSelect = (val) => {

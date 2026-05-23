@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, Text, SimpleGrid, Group, Badge, Box, TextInput, Stack, Pagination, Loader, Image } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { IconSearch } from '@tabler/icons-react';
@@ -13,7 +13,7 @@ function CatalogPage() {
   const pageSize = 12;
   const { t } = useTranslation();
 
-  const loadCatalog = async (p) => {
+  const loadCatalog = useCallback(async (p) => {
     try {
       setListLoading(true);
       const response = await catalogApi.getAll(p, pageSize);
@@ -25,11 +25,11 @@ function CatalogPage() {
     } finally {
       setListLoading(false);
     }
-  };
+  }, [pageSize, t]);
 
   useEffect(() => {
     loadCatalog(page);
-  }, [page]);
+  }, [page, loadCatalog]);
 
   const getStockBadge = (stock) => {
     if (stock === 0) return <Badge color="red">{t('Out of Stock')}</Badge>;
@@ -91,12 +91,10 @@ function CatalogPage() {
               </Group>
               
               <Text size="sm" c="dimmed" mb="md" fs="italic">{item.ScientificName}</Text>
-
               <Group justify="space-between" mb="xs">
-                <Text size="sm" c="dimmed">{t('Category')}</Text>
-                <Text size="sm" fw={500}>{item.Category}</Text>
+                <Text size="sm" c="dimmed">{t('Variety')}</Text>
+                <Text size="sm" fw={500}>{item.VariantName}</Text>
               </Group>
-
               <Group justify="space-between" mb="xs">
                 <Text size="sm" c="dimmed">{t('Units Available')}</Text>
                 <Text size="sm" fw={500}>{item.TotalStock}</Text>

@@ -7,4 +7,5 @@ export const inventoryLotsApi = {
   registerMortality: (data) => apiClient.post('/InventoryLots/register-mortality', data),
   getBySpecies: (speciesId) => apiClient.get(`/InventoryLots/by-species/${speciesId}`),
   getBiologicalStock: (lotId) => apiClient.get(`/InventoryLots/biological-stock/${lotId}`),
+  getHistory: (id) => apiClient.get(`/InventoryLots/${id}/history`),
 };

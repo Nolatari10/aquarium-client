@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Button, Table, Modal, TextInput, Select, NumberInput, Group, Text, ActionIcon, Box, Stack, Badge, Paper, Checkbox, Pagination, Loader } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
@@ -111,18 +111,7 @@ function SpeciesPage() {
     ImageUrl: ''
   });
 
-  useEffect(() => { loadSpecies(page); }, [page]);
-
-  useEffect(() => {
-    const term = search.toLowerCase();
-    setFilteredSpecies(species.filter(s =>
-      s.CommonName?.toLowerCase().includes(term) ||
-      s.ScientificName?.toLowerCase().includes(term) ||
-      s.Category?.toLowerCase().includes(term)
-    ));
-  }, [search, species]);
-
-  const loadSpecies = async (p) => {
+  const loadSpecies = useCallback(async (p) => {
     try {
       setListLoading(true);
       const response = await speciesApi.getAll(p, pageSize);
@@ -135,7 +124,18 @@ function SpeciesPage() {
     } finally {
       setListLoading(false);
     }
-  };
+  }, [pageSize, t]);
+
+  useEffect(() => { loadSpecies(page); }, [page, loadSpecies]);
+
+  useEffect(() => {
+    const term = search.toLowerCase();
+    setFilteredSpecies(species.filter(s =>
+      s.CommonName?.toLowerCase().includes(term) ||
+      s.ScientificName?.toLowerCase().includes(term) ||
+      s.Category?.toLowerCase().includes(term)
+    ));
+  }, [search, species]);
 
   const refreshSpecies = () => { setPage(1); loadSpecies(1); };
 

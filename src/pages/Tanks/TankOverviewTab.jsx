@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, Group, SimpleGrid, Text, Stack, Badge, Table, Loader } from '@mantine/core';
 import { IconTestPipe, IconDroplet, IconTool, IconPhoto } from '@tabler/icons-react';
 import { tanksApi } from '../../api/tanks';
@@ -10,18 +10,18 @@ function TankOverviewTab({ tank }) {
   const [timeline, setTimeline] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadTimeline();
-  }, []);
-
-  const loadTimeline = async () => {
+  const loadTimeline = useCallback(async () => {
     try {
       setLoading(true);
       const res = await tanksApi.getTimeline(tank.Id, { pageSize: 10 });
       setTimeline(res.data || []);
     } catch { /* ignore */ }
     finally { setLoading(false); }
-  };
+  }, [tank.Id]);
+
+  useEffect(() => {
+    loadTimeline();
+  }, [loadTimeline]);
 
   const latestWater = timeline.find(e => e.EntryType === 'WaterParameter')?.Data;
   const latestDose = timeline.find(e => e.EntryType === 'Fertilization')?.Data;

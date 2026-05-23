@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   Button, Table, Modal, TextInput, Select, NumberInput, Group, Text,
   Box, Card, Badge, ActionIcon, Divider, Stack, Paper, Pagination, Loader
@@ -35,21 +35,14 @@ function SalesPage() {
     UnitPrice: ''
   });
 
-  useEffect(() => {
-    loadCatalog();
-    loadSales(1);
-  }, []);
-
-  useEffect(() => { loadSales(page); }, [page]);
-
-  const loadCatalog = async () => {
+  const loadCatalog = useCallback(async () => {
     try {
       const res = await catalogApi.getAll(1, 1000);
       setCatalog(res.data.Items || []);
     } catch { /* ignore */ }
-  };
+  }, []);
 
-  const loadSales = async (p) => {
+  const loadSales = useCallback(async (p) => {
     try {
       setListLoading(true);
       const res = await salesApi.getAll(p, pageSize);
@@ -61,7 +54,14 @@ function SalesPage() {
     } finally {
       setListLoading(false);
     }
-  };
+  }, [pageSize, t]);
+
+  useEffect(() => {
+    loadCatalog();
+    loadSales(1);
+  }, [loadCatalog, loadSales]);
+
+  useEffect(() => { loadSales(page); }, [page, loadSales]);
 
   const refreshSales = () => { setPage(1); loadSales(1); };
 
@@ -70,17 +70,19 @@ function SalesPage() {
       notifications.show({ title: 'Error', message: t('Select a species'), color: 'red' });
       return;
     }
-    
-    setSaleData({
-      ...saleData,
-      Items: [...saleData.Items, { ...newItem, UnitPrice: newItem.UnitPrice === '' ? 0 : parseFloat(newItem.UnitPrice) }]
-    });
+
+    setSaleData(prev => ({
+      ...prev,
+      Items: [...prev.Items, { ...newItem, UnitPrice: newItem.UnitPrice === '' ? 0 : parseFloat(newItem.UnitPrice) }]
+    }));
     setNewItem({ SpeciesId: null, SpeciesVariantId: null, Quantity: 1, UnitPrice: '' });
   };
 
   const handleRemoveItem = (index) => {
-    const items = saleData.Items.filter((_, i) => i !== index);
-    setSaleData({ ...saleData, Items: items });
+    setSaleData(prev => ({
+      ...prev,
+      Items: prev.Items.filter((_, i) => i !== index)
+    }));
   };
 
   const handleCreateSale = async () => {
@@ -91,6 +93,14 @@ function SalesPage() {
 
     try {
       setLoading(true);
+      if(saleData.Items.some(item => item.UnitPrice === '' || item.UnitPrice < 0)) {
+        notifications.show({ title: 'Error', message: t('Invalid unit price'), color: 'red' });
+        return;
+      }
+      if(saleData.Items.some(item => item.Quantity <= 0)) {
+        notifications.show({ title: 'Error', message: t('Quantity must be at least 1'), color: 'red' });
+        return;
+      }
       await salesApi.create({
         CustomerName: saleData.CustomerName,
         Date: saleData.Date,
@@ -103,7 +113,7 @@ function SalesPage() {
     } catch (e) {
       notifications.show({
         title: 'Error',
-        message: e.response?.data?.ErrorMessage || t('Failed to create sale'),
+        message: e.response?.data?.ErrorMessage || t('Failed to create sale: You cannot sell more than you have in stock'),
         color: 'red'
       });
     } finally {
@@ -228,25 +238,25 @@ function SalesPage() {
               onChange={(value) => {
                 const variantId = parseInt(value);
                 const selected = catalog.find(c => c.SpeciesVariantId === variantId);
-                setNewItem({
-                  ...newItem,
+                setNewItem(prev => ({
+                  ...prev,
                   SpeciesVariantId: variantId,
                   SpeciesId: selected?.SpeciesId || null
-                });
+                }));
               }}
             />
             <NumberInput
               label={t('Quantity')}
               min={1}
               value={newItem.Quantity}
-              onChange={(value) => setNewItem({ ...newItem, Quantity: value || 1 })}
+              onChange={(value) => setNewItem(prev => ({ ...prev, Quantity: value || 1 }))}
             />
             <NumberInput
               label={t('Unit Price')}
               min={0}
               step={0.01}
               value={newItem.UnitPrice ?? ''}
-              onChange={(value) => setNewItem({ ...newItem, UnitPrice: value })}
+              onChange={(value) => setNewItem(prev => ({ ...prev, UnitPrice: value }))}
             />
           </Group>
           <Button variant="light" onClick={handleAddItem}>

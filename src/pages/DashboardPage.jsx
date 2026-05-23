@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, Text, Group, SimpleGrid, Box, Title, Button, Stack, Badge, Paper } from '@mantine/core';
 import { useNavigate } from 'react-router-dom';
-import { IconFish, IconPackage, IconShoppingCart, IconAlertTriangle, IconPlus, IconArrowRight } from '@tabler/icons-react';
+import { IconFish, IconPackage, IconShoppingCart, IconAlertTriangle, IconPlus, IconArrowRight, IconSkull } from '@tabler/icons-react';
 import { catalogApi } from '../api/catalog';
 import { salesApi } from '../api/sales';
 import { reportsApi } from '../api/reports';
+import { alertsApi } from '../api/alerts';
 import { useTranslation } from 'react-i18next';
 
 const kpiStyles = `
@@ -23,14 +24,11 @@ function DashboardPage() {
     lowStockCount: 0
   });
   const [recentSales, setRecentSales] = useState([]);
+  const [highMortalityAlerts, setHighMortalityAlerts] = useState([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    loadDashboardData();
-  }, []);
-
-  const loadDashboardData = async () => {
+  const loadDashboardData = useCallback(async () => {
     try {
       const [catalog, sales, stockReport] = await Promise.all([
         catalogApi.getAll(1, 1000),
@@ -57,12 +55,19 @@ function DashboardPage() {
       });
 
       setRecentSales(salesData.slice(-5).reverse());
+
+      const alertsData = await alertsApi.getActiveHighMortalityAlerts();
+      setHighMortalityAlerts(alertsData.data || []);
     } catch {
       console.error(t('Error loading dashboard'));
     } finally {
       setLoading(false);
     }
-  };
+  }, [t]);
+
+  useEffect(() => {
+    loadDashboardData();
+  }, [loadDashboardData]);
 
   const kpiCards = [
     {
@@ -199,6 +204,48 @@ function DashboardPage() {
           )}
         </Card>
       </SimpleGrid>
+
+      {highMortalityAlerts.length > 0 && (
+        <Card padding="lg" radius="md" withBorder mt="lg">
+          <Group justify="space-between" mb="md">
+            <Group gap="sm">
+              <IconSkull size={22} color="var(--mantine-color-red-6)" />
+              <Box>
+                <Text fw={700}>{t('High Mortality Alert')}</Text>
+                <Text size="xs" c="dimmed">{highMortalityAlerts.length} lot(s) exceeding mortality threshold</Text>
+              </Box>
+            </Group>
+            <Button variant="subtle" size="xs" onClick={() => navigate('/alerts')}>
+              {t('Configure Alerts')}
+            </Button>
+          </Group>
+
+          <Stack gap="xs">
+            {highMortalityAlerts.slice(0, 5).map((alert) => (
+              <Paper key={alert.LotId} p="sm" radius="sm" withBorder bg="red.0">
+                <Group justify="space-between" wrap="wrap">
+                  <Box>
+                    <Text size="sm" fw={500}>{alert.SpeciesName}</Text>
+                    <Text size="xs" c="dimmed">
+                      {alert.SupplierName && `${alert.SupplierName} · `}
+                      Lot #{alert.LotId} · Arrived {new Date(alert.ArrivalDate).toLocaleDateString()} · Stock: {alert.CurrentStock}
+                    </Text>
+                  </Box>
+                  <Group gap="xs">
+                    <Badge color="red" variant="filled">{alert.MortalityRatePercent}% mortality</Badge>
+                    <Badge color="orange" variant="light">-${alert.CostLost.toFixed(2)}</Badge>
+                  </Group>
+                </Group>
+              </Paper>
+            ))}
+            {highMortalityAlerts.length > 5 && (
+              <Text size="xs" c="dimmed" ta="center">
+                {t('And {count} more...', { count: highMortalityAlerts.length - 5 })}
+              </Text>
+            )}
+          </Stack>
+        </Card>
+      )}
     </Box>
   );
 }
