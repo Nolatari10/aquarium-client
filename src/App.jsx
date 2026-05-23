@@ -13,11 +13,14 @@ import {
   IconSun,
   IconMoon,
   IconDroplet,
+  IconBell,
+  IconUser,
 } from '@tabler/icons-react';
 import DashboardPage from './pages/DashboardPage';
 import SpeciesPage from './pages/SpeciesPage';
 import SuppliersPage from './pages/SuppliersPage';
 import InventoryLotsPage from './pages/InventoryLotsPage';
+import LotDetailPage from './pages/LotDetailPage';
 import SalesPage from './pages/SalesPage';
 import CatalogPage from './pages/CatalogPage';
 import ReportsPage from './pages/ReportsPage';
@@ -25,6 +28,8 @@ import LoginPage from './pages/LoginPage';
 import TankListPage from './pages/Tanks/TankListPage';
 import TankCreatePage from './pages/Tanks/TankCreatePage';
 import TankDetailPage from './pages/Tanks/TankDetailPage';
+import AlertConfigsPage from './pages/AlertConfigsPage';
+import UserManagementPage from './pages/UserManagementPage';
 import { useAuth } from './hooks/useAuth';
 import { RequireAuth } from './components/auth/RequireAuth';
 import { useTranslation } from 'react-i18next';
@@ -38,6 +43,8 @@ const navLinks = [
   { icon: IconBook, label: 'Catalog', to: '/catalog' },
   { icon: IconReport, label: 'Reports', to: '/reports' },
   { icon: IconDroplet, label: 'Tanks', to: '/tanks' },
+  { icon: IconBell, label: 'Alerts', to: '/alerts' },
+  { icon: IconUser, label: 'Users', to: '/users', roleRequired: 'Owner' },
 ];
 
 function App() {
@@ -47,6 +54,8 @@ function App() {
   const [mobileOpened, { toggle: toggleMobile, close: closeMobile }] = useDisclosure();
   const [desktopOpened, { toggle: toggleDesktop }] = useDisclosure(true);
   const location = useLocation();
+
+  const visibleNavLinks = navLinks.filter(link => !link.roleRequired || user?.role === link.roleRequired);
 
   const handleNavClick = () => {
     closeMobile();
@@ -106,7 +115,7 @@ function App() {
       </AppShell.Header>
 
       <AppShell.Navbar p="md">
-        {navLinks.map((link) => {
+        {visibleNavLinks.map((link) => {
           const isActive = location.pathname === link.to;
           return (
             <UnstyledButton
@@ -149,12 +158,15 @@ function App() {
           <Route path="/species" element={<RequireAuth><SpeciesPage /></RequireAuth>} />
           <Route path="/suppliers" element={<RequireAuth><SuppliersPage /></RequireAuth>} />
           <Route path="/inventory" element={<RequireAuth><InventoryLotsPage /></RequireAuth>} />
+          <Route path="/inventory/:id" element={<RequireAuth><LotDetailPage /></RequireAuth>} />
           <Route path="/sales" element={<RequireAuth><SalesPage /></RequireAuth>} />
           <Route path="/catalog" element={<RequireAuth><CatalogPage /></RequireAuth>} />
           <Route path="/reports" element={<RequireAuth><ReportsPage /></RequireAuth>} />
           <Route path="/tanks" element={<RequireAuth><TankListPage /></RequireAuth>} />
           <Route path="/tanks/new" element={<RequireAuth><TankCreatePage /></RequireAuth>} />
           <Route path="/tanks/:id" element={<RequireAuth><TankDetailPage /></RequireAuth>} />
+          <Route path="/alerts" element={<RequireAuth><AlertConfigsPage /></RequireAuth>} />
+          <Route path="/users" element={<RequireAuth><UserManagementPage /></RequireAuth>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </AppShell.Main>
