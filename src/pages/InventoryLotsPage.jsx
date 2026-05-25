@@ -6,7 +6,7 @@ import {
 import { useDisclosure } from '@mantine/hooks';
 import { useNavigate } from 'react-router-dom';
 import { notifications } from '@mantine/notifications';
-import { IconPlus, IconAlertTriangle, IconSearch } from '@tabler/icons-react';
+import { IconPlus, IconAlertTriangle, IconSearch, IconTablePlus } from '@tabler/icons-react';
 import { inventoryLotsApi } from '../api/inventoryLots';
 import { speciesApi } from '../api/species';
 import { speciesVariantsApi } from '../api/speciesVariantsApi';
@@ -232,9 +232,18 @@ function InventoryLotsPage() {
           <Text size="xl" fw={700}>{t('Inventory')}</Text>
           <Text size="sm" c="dimmed">{filteredLots.length} {t('lots tracked')}</Text>
         </Box>
-        <Button leftSection={<IconPlus size={16} />} onClick={() => setActiveTab('create')}>
-          {t('Create Lot')}
-        </Button>
+        <Group>
+          <Button
+            variant="outline"
+            leftSection={<IconTablePlus size={16} />}
+            onClick={() => navigate('/inventory/bulk-receive')}
+          >
+            {t('Bulk Receive')}
+          </Button>
+          <Button leftSection={<IconPlus size={16} />} onClick={() => setActiveTab('create')}>
+            {t('Create Lot')}
+          </Button>
+        </Group>
       </Group>
 
       <Tabs value={activeTab} onChange={setActiveTab}>

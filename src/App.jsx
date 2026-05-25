@@ -20,6 +20,7 @@ import DashboardPage from './pages/DashboardPage';
 import SpeciesPage from './pages/SpeciesPage';
 import SuppliersPage from './pages/SuppliersPage';
 import InventoryLotsPage from './pages/InventoryLotsPage';
+import BulkReceiveInventoryPage from './pages/BulkReceiveInventoryPage';
 import LotDetailPage from './pages/LotDetailPage';
 import SalesPage from './pages/SalesPage';
 import CatalogPage from './pages/CatalogPage';
@@ -86,7 +87,7 @@ function App() {
             <Burger opened={mobileOpened} onClick={toggleMobile} hiddenFrom="sm" size="sm" />
             <Burger opened={desktopOpened} onClick={toggleDesktop} visibleFrom="sm" size="sm" />
             <Text fw={700} size="lg" c="teal.6">
-              {t('Aquarium Manager')}
+              {user?.tenantName || t('Aquarium Manager')}
             </Text>
           </Group>
           <Group gap="sm">
@@ -158,6 +159,7 @@ function App() {
           <Route path="/species" element={<RequireAuth><SpeciesPage /></RequireAuth>} />
           <Route path="/suppliers" element={<RequireAuth><SuppliersPage /></RequireAuth>} />
           <Route path="/inventory" element={<RequireAuth><InventoryLotsPage /></RequireAuth>} />
+          <Route path="/inventory/bulk-receive" element={<RequireAuth><BulkReceiveInventoryPage /></RequireAuth>} />
           <Route path="/inventory/:id" element={<RequireAuth><LotDetailPage /></RequireAuth>} />
           <Route path="/sales" element={<RequireAuth><SalesPage /></RequireAuth>} />
           <Route path="/catalog" element={<RequireAuth><CatalogPage /></RequireAuth>} />

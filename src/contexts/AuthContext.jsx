@@ -43,6 +43,7 @@ export function AuthProvider({ children }) {
         userId: response.data.UserId,
         email: response.data.Email,
         role: response.data.Role,
+        tenantName : response.data.TenantName
       };
       saveAuth(token, user);
       setAuth({ token, user });
