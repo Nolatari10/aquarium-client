@@ -81,12 +81,15 @@ function App() {
       }}
       padding="lg"
     >
-      <AppShell.Header>
+      <AppShell.Header style={{
+        background: 'var(--aqua-scheme-header-bg)',
+        borderBottom: '1px solid var(--aqua-scheme-border)',
+      }}>
         <Group h="100%" px="md" justify="space-between">
           <Group gap="sm">
             <Burger opened={mobileOpened} onClick={toggleMobile} hiddenFrom="sm" size="sm" />
             <Burger opened={desktopOpened} onClick={toggleDesktop} visibleFrom="sm" size="sm" />
-            <Text fw={700} size="lg" c="teal.6">
+            <Text fw={700} size="lg" style={{ color: 'var(--aqua-accent)', letterSpacing: '-0.01em' }}>
               {user?.tenantName || t('Aquarium Manager')}
             </Text>
           </Group>
@@ -115,9 +118,12 @@ function App() {
         </Group>
       </AppShell.Header>
 
-      <AppShell.Navbar p="md">
+      <AppShell.Navbar p="md" style={{
+        background: 'var(--aqua-scheme-navbar-bg)',
+        borderRight: '1px solid var(--aqua-scheme-border)',
+      }}>
         {visibleNavLinks.map((link) => {
-          const isActive = location.pathname === link.to;
+          const isActive = location.pathname === link.to || (link.to !== '/' && location.pathname.startsWith(link.to));
           return (
             <UnstyledButton
               key={link.to}
@@ -128,25 +134,33 @@ function App() {
                 display: 'flex',
                 alignItems: 'center',
                 gap: 12,
-                padding: '10px 12px',
+                padding: '10px 14px',
                 borderRadius: 8,
                 textDecoration: 'none',
-                color: isActive ? 'var(--mantine-color-white)' : 'var(--mantine-color-text)',
-                backgroundColor: isActive ? 'var(--mantine-color-teal-6)' : 'transparent',
+                color: isActive ? 'var(--aqua-scheme-text-primary)' : 'var(--aqua-scheme-text-secondary)',
+                backgroundColor: isActive ? 'rgba(34, 199, 201, 0.12)' : 'transparent',
+                border: isActive ? '1px solid rgba(34, 199, 201, 0.2)' : '1px solid transparent',
                 marginBottom: 4,
                 width: '100%',
-                transition: 'background-color 0.15s ease, transform 0.15s ease',
+                transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                fontWeight: isActive ? 600 : 400,
               }}
               onMouseEnter={(e) => {
-                if (!isActive) e.currentTarget.style.backgroundColor = colorScheme === 'dark' ? 'var(--mantine-color-dark-4)' : 'var(--mantine-color-gray-1)';
-                e.currentTarget.style.transform = 'translateX(4px)';
+                if (!isActive) {
+                  e.currentTarget.style.backgroundColor = 'var(--aqua-scheme-surface-raised)';
+                  e.currentTarget.style.color = 'var(--aqua-scheme-text-primary)';
+                  e.currentTarget.style.transform = 'translateX(4px)';
+                }
               }}
               onMouseLeave={(e) => {
-                if (!isActive) e.currentTarget.style.backgroundColor = 'transparent';
-                e.currentTarget.style.transform = '';
+                if (!isActive) {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                  e.currentTarget.style.color = 'var(--aqua-scheme-text-secondary)';
+                  e.currentTarget.style.transform = '';
+                }
               }}
             >
-              <link.icon size={20} />
+              <link.icon size={20} style={{ opacity: isActive ? 1 : 0.65 }} />
               <Text size="sm" fw={isActive ? 600 : 400}>{t(link.label)}</Text>
             </UnstyledButton>
           );
