@@ -25,23 +25,26 @@ function sanitizeData(data) {
   return data.map(sanitizeRow);
 }
 
-function useDynamicHeaders(data, userHeaders) {
+function useDynamicHeaders(data, userHeaders, t, excludeIdColumns) {
   return useMemo(() => {
     if (userHeaders && userHeaders.length > 0) return userHeaders;
     if (!data || data.length === 0) return [];
     const firstItem = data[0];
     if (!firstItem || typeof firstItem !== 'object') return [];
-    return Object.keys(firstItem).map((key) => ({
-      label: formatLabel(key),
+    const keys = excludeIdColumns
+      ? Object.keys(firstItem).filter((k) => !k.endsWith('Id'))
+      : Object.keys(firstItem);
+    return keys.map((key) => ({
+      label: formatLabel(key, t),
       key,
     }));
-  }, [data, userHeaders]);
+  }, [data, userHeaders, t, excludeIdColumns]);
 }
 
-const ExportCSV = ({ data, fileName, headers }) => {
+const ExportCSV = ({ data, fileName, headers, excludeIdColumns = true }) => {
   const { t } = useTranslation();
   const [opened, setOpened] = useState(false);
-  const dynamicHeaders = useDynamicHeaders(data, headers);
+  const dynamicHeaders = useDynamicHeaders(data, headers, t, excludeIdColumns);
 
   const handleConfirm = () => {
     setOpened(false);
@@ -62,20 +65,20 @@ const ExportCSV = ({ data, fileName, headers }) => {
       <Modal
         opened={opened}
         onClose={() => setOpened(false)}
-        title="Export Report"
+        title={t('Export Report')}
         centered
         size="sm"
       >
         <Stack gap="md">
           <Text size="sm">
-            Are you sure you want to export this report as a CSV file?
+            {t('Are you sure you want to export this report as a CSV file?')}
           </Text>
           <Text size="xs" c="dimmed">
-            {data?.length || 0} rows will be exported.
+            {t('{count} rows will be exported.', { count: data?.length || 0 })}
           </Text>
           <Group justify="flex-end" gap="sm">
             <Button variant="default" onClick={() => setOpened(false)}>
-              Cancel
+              {t('Cancel')}
             </Button>
             <CSVLink
               data={sanitizeData(data)}
@@ -85,7 +88,7 @@ const ExportCSV = ({ data, fileName, headers }) => {
               onClick={handleConfirm}
             >
               <Button color="teal" type="button">
-                Download
+                {t('Download')}
               </Button>
             </CSVLink>
           </Group>

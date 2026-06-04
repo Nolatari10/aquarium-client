@@ -133,21 +133,21 @@ const styles = StyleSheet.create({
   },
 });
 
-function parseReportData(data) {
+function parseReportData(data, t) {
   const tables = [];
-
+  const { tr } = useTranslation();
   for (const [key, value] of Object.entries(data)) {
     if (key === 'headers') continue;
     if (!Array.isArray(value)) continue;
 
-    const formattedTitle = formatLabel(key);
+    const formattedTitle = formatLabel(key, t);
     if (value.length > 0 && typeof value[0] === 'object' && value[0] !== null) {
       const headerKeys = Object.keys(value[0]).filter((k) => !k.endsWith('Id'));
 
       tables.push({
         title: formattedTitle,
         headerKeys,
-        headers: headerKeys.map((k) => formatLabel(k)),
+        headers: headerKeys.map((k) => formatLabel(k, t)),
         rows: value,
       });
     } else {
@@ -164,7 +164,7 @@ function parseReportData(data) {
 }
 
 function ReportDocument({ title, subtitle, data, t }) {
-  const { tables } = parseReportData(data);
+  const { tables } = parseReportData(data, t);
   const today = new Date().toLocaleDateString();
 
   return (
@@ -172,7 +172,7 @@ function ReportDocument({ title, subtitle, data, t }) {
       <Page size="LETTER" style={styles.page}>
         <View style={styles.header}>
           <View style={styles.headerLeft}>
-            <Text style={styles.companyName}>Aquarium Manager</Text>
+            <Text style={styles.companyName}>{t('Aquarium Manager')}</Text>
             <Text style={styles.title}>{title}</Text>
             {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
           </View>
@@ -220,7 +220,7 @@ function ReportDocument({ title, subtitle, data, t }) {
                             : styles.tableCell
                         }
                       >
-                        {formatCellValue(row[key], key)}
+                        {formatCellValue(row[key], key, t)}
                       </Text>
                     ))}
                   </View>

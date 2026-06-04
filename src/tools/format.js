@@ -1,12 +1,22 @@
-export function formatLabel(key) {
-  return key
+export function formatLabel(key, t) {
+  const label = key
     .replace(/([a-z])([A-Z])/g, '$1 $2')
     .replace(/([A-Z]+)([A-Z][a-z])/g, '$1 $2')
     .replace(/^./, (s) => s.toUpperCase())
     .trim();
+
+  if (!t) return label;
+
+  const byKey = t(key);
+  if (byKey !== key) return byKey;
+
+  const byLabel = t(label);
+  if (byLabel !== label) return byLabel;
+
+  return label;
 }
 
-export function formatCellValue(value, key) {
+export function formatCellValue(value, key, t) {
   if (value === null || value === undefined) return '';
   const keyLower = (key || '').toLowerCase();
   if (typeof value === 'number') {
@@ -24,6 +34,9 @@ export function formatCellValue(value, key) {
     }
   }
   if (Array.isArray(value)) return String(value.length);
-  if (typeof value === 'boolean') return value ? 'Yes' : 'No';
+  if (typeof value === 'boolean') {
+    if (!t) return value ? 'Yes' : 'No';
+    return value ? t('Yes') : t('No');
+  }
   return String(value);
 }
