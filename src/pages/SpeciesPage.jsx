@@ -204,14 +204,14 @@ function SpeciesPage() {
       } else {
         parsed = parseJSONFile(text);
         if (!parsed) {
-          notifications.show({ title: 'Error', message: 'Invalid JSON file — expected an array of species objects', color: 'red' });
+          notifications.show({ title: 'Error', message: t('Invalid JSON file — expected an array of species objects'), color: 'red' });
           return;
         }
         parsed = parsed.filter(r => r.CommonName);
       }
 
       if (parsed.length === 0) {
-        notifications.show({ title: 'Error', message: 'No valid species found in file', color: 'red' });
+        notifications.show({ title: 'Error', message: t('No valid species found in file'), color: 'red' });
         return;
       }
 
@@ -236,7 +236,7 @@ function SpeciesPage() {
     } catch (e) {
       notifications.show({
         title: 'Error',
-        message: e.response?.data || 'Import failed',
+        message: e.response?.data || t('Import failed'),
         color: 'red'
       });
     } finally {
@@ -299,7 +299,7 @@ function SpeciesPage() {
       notifications.show({ title: 'Success', message: t('Species deleted'), color: 'green' });
       refreshSpecies();
     } catch {
-      notifications.show({ title: 'Error', message: 'Failed to delete species', color: 'red' });
+      notifications.show({ title: 'Error', message: t('Failed to delete species'), color: 'red' });
     }
   };
 
@@ -430,10 +430,10 @@ function SpeciesPage() {
         </form>
       </Modal>
 
-      <Modal opened={importOpened} onClose={handleCloseImport} title="{t('Import')} Species" size="lg">
+      <Modal opened={importOpened} onClose={handleCloseImport} title={t('Import Species')} size="lg">
         <Stack gap="md">
           <Text size="sm" c="dimmed">
-            Upload a JSON or CSV file with species data. CSV must have a header row with column names.
+            {t('Upload a JSON or CSV file with species data. CSV must have a header row with column names.')}
           </Text>
 
           {!previewData.length && !importResult && (
@@ -451,7 +451,7 @@ function SpeciesPage() {
                 <Button component="label" htmlFor="species-file-input" variant="light" leftSection={<IconFileImport size={16} />}>
                   Choose File (.json or .csv)
                 </Button>
-                <Text size="xs" c="dimmed">JSON: array of species objects. CSV: columns CommonName, ScientificName, {t('Variety')}, {t('Category')}, Min{t('Temperature')}, Max{t('Temperature')}, MinPH, MaxPH, ImageUrl</Text>
+                <Text size="xs" c="dimmed">{t('JSON: array of species objects. CSV: columns CommonName, ScientificName, {t("Variety")}, {t("Category")}, Min{t("Temperature")}, Max{t("Temperature")}, MinPH, MaxPH, ImageUrl')}</Text>
               </Stack>
             </Paper>
           )}
@@ -518,12 +518,12 @@ function SpeciesPage() {
             <Button variant="default" onClick={handleCloseImport}>Close</Button>
             {previewData.length > 0 && !importResult && (
               <Button onClick={handleImport} loading={importing} leftSection={<IconUpload size={16} />}>
-                {t('Import')} {previewData.length} species
+                {t('Import')} {previewData.length} {t('species')}
               </Button>
             )}
             {importResult && (
               <Button variant="light" onClick={() => { setPreviewData([]); setImportResult(null); setImportFileName(''); if (fileInputRef.current) fileInputRef.current.value = ''; }}>
-                {t('Import')} Another File
+                {t('ImportAnother File')}
               </Button>
             )}
           </Group>
@@ -538,7 +538,7 @@ function SpeciesPage() {
           <Group justify="flex-end">
             <Button variant="default" onClick={closeBulkDelete} disabled={deleting}>Cancel</Button>
             <Button color="red" onClick={handleBulkDelete} loading={deleting} leftSection={<IconTrash size={16} />}>
-              Delete {selectedIds.length} Species
+              {t('Delete')} {selectedIds.length} {t('species')}
             </Button>
           </Group>
         </Stack>

@@ -427,7 +427,7 @@ function BulkReceiveInventoryPage() {
         </Group>
         <Group gap="sm">
           <Text size="xs" c="dimmed">
-            Ctrl+Enter {t('to submit')}
+            {t('Ctrl+Enter to submit')}
           </Text>
           <Button
             leftSection={<IconDeviceFloppy size={16} />}

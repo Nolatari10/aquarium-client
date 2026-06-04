@@ -1,19 +1,22 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Button, Group, Stack, Text, Table, Modal, Select, NumberInput, Textarea, Loader, Progress, TextInput } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
 import { IconPlus } from '@tabler/icons-react';
 import { tanksApi } from '../../api/tanks';
+import { useTranslation } from 'react-i18next';
 
-const MAINTENANCE_TYPES = [
-  { value: 'WaterChange', label: 'Water Change' },
-  { value: 'FilterCleaning', label: 'Filter Cleaning' },
-  { value: 'PlantTrimming', label: 'Plant Trimming' },
-  { value: 'SubstrateVacuuming', label: 'Substrate Vacuum' },
-  { value: 'GlassCleaning', label: 'Glass Cleaning' },
-  { value: 'EquipmentCheck', label: 'Equipment Check' },
-  { value: 'Other', label: 'Other' },
-];
+const MAINTENANCE_TYPE_VALUES = ['WaterChange', 'FilterCleaning', 'PlantTrimming', 'SubstrateVacuuming', 'GlassCleaning', 'EquipmentCheck', 'Other'];
+
+const MAINTENANCE_TYPE_LABELS = {
+  WaterChange: 'Water Change',
+  FilterCleaning: 'Filter Cleaning',
+  PlantTrimming: 'Plant Trimming',
+  SubstrateVacuuming: 'Substrate Vacuum',
+  GlassCleaning: 'Glass Cleaning',
+  EquipmentCheck: 'Equipment Check',
+  Other: 'Other',
+};
 
 const TYPE_ICONS = {
   WaterChange: '💧', FilterCleaning: '🔧', PlantTrimming: '✂️',
@@ -21,6 +24,13 @@ const TYPE_ICONS = {
 };
 
 function TankMaintenanceTab({ tankId }) {
+  const { t } = useTranslation();
+
+  const maintenanceTypes = useMemo(() =>
+    MAINTENANCE_TYPE_VALUES.map((v) => ({
+      value: v,
+      label: t(MAINTENANCE_TYPE_LABELS[v]),
+    })), [t]);
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [opened, { open, close }] = useDisclosure(false);
@@ -83,8 +93,8 @@ function TankMaintenanceTab({ tankId }) {
   return (
     <Stack>
       <Group justify="space-between">
-        <Text fw={600}>Maintenance History ({logs.length})</Text>
-        <Button leftSection={<IconPlus size={16} />} onClick={open}>Log Maintenance</Button>
+        <Text fw={600}>{t('Maintenance History')} ({logs.length})</Text>
+        <Button leftSection={<IconPlus size={16} />} onClick={open}>{t('Log Maintenance')}</Button>
       </Group>
 
       {loading ? <Loader /> : Object.keys(grouped).length > 0 ? Object.entries(grouped).map(([month, entries]) => (
@@ -95,7 +105,7 @@ function TankMaintenanceTab({ tankId }) {
               <Text size="xl">{TYPE_ICONS[l.MaintenanceType] || '📋'}</Text>
               <Stack gap={2} style={{ flex: 1 }}>
                 <Group gap="xs">
-                  <Text fw={500}>{l.MaintenanceType}</Text>
+                  <Text fw={500}>{t(MAINTENANCE_TYPE_LABELS[l.MaintenanceType] || l.MaintenanceType)}</Text>
                   <Text size="xs" c="dimmed">{new Date(l.PerformedAt).toLocaleDateString()}</Text>
                 </Group>
                 {l.WaterChangePercent != null && (
@@ -107,25 +117,25 @@ function TankMaintenanceTab({ tankId }) {
             </Group>
           ))}
         </Stack>
-      )) : <Text c="dimmed" ta="center" py="md">No maintenance logged yet.</Text>}
+      )) : <Text c="dimmed" ta="center" py="md">{t('No maintenance logged yet.')}</Text>}
 
-      <Modal opened={opened} onClose={close} title="Log Maintenance" size="md">
+      <Modal opened={opened} onClose={close} title={t('Log Maintenance')} size="md">
         <form onSubmit={handleSubmit}>
           <Stack gap="sm">
-            <TextInput type="datetime-local" label="Date/Time" value={form.PerformedAt} onChange={(e) => setF('PerformedAt', e.target.value)} />
-            <Select label="Type" required data={MAINTENANCE_TYPES} value={form.MaintenanceType} onChange={(v) => setF('MaintenanceType', v)} />
+            <TextInput type="datetime-local" label={t('Date/Time')} value={form.PerformedAt} onChange={(e) => setF('PerformedAt', e.target.value)} />
+            <Select label={t('Type')} required data={maintenanceTypes} value={form.MaintenanceType} onChange={(v) => setF('MaintenanceType', v)} />
             {form.MaintenanceType === 'WaterChange' && (
               <>
-                <NumberInput label="Water Change (%)" min={0} max={100} value={form.WaterChangePercent || ''} onChange={(v) => setF('WaterChangePercent', v)} />
-                <NumberInput label="Volume (L)" min={0} value={form.WaterChangeLiters || ''} onChange={(v) => setF('WaterChangeLiters', v)} />
+                <NumberInput label={t('Water Change (%)')} min={0} max={100} value={form.WaterChangePercent || ''} onChange={(v) => setF('WaterChangePercent', v)} />
+                <NumberInput label={t('Volume (L)')} min={0} value={form.WaterChangeLiters || ''} onChange={(v) => setF('WaterChangeLiters', v)} />
               </>
             )}
-            <NumberInput label="Duration (min)" min={0} value={form.DurationMinutes || ''} onChange={(v) => setF('DurationMinutes', v)} />
-            <NumberInput label="Reminder (days)" min={0} value={form.ReminderFrequencyDays || ''} onChange={(v) => setF('ReminderFrequencyDays', v)} placeholder="e.g. 7 for weekly" />
-            <Textarea label="Notes" value={form.Notes} onChange={(e) => setF('Notes', e.target.value)} />
+            <NumberInput label={t('Duration (min)')} min={0} value={form.DurationMinutes || ''} onChange={(v) => setF('DurationMinutes', v)} />
+            <NumberInput label={t('Reminder (days)')} min={0} value={form.ReminderFrequencyDays || ''} onChange={(v) => setF('ReminderFrequencyDays', v)} placeholder="e.g. 7 for weekly" />
+            <Textarea label={t('Notes')} value={form.Notes} onChange={(e) => setF('Notes', e.target.value)} />
             <Group justify="flex-end" mt="md">
-              <Button variant="default" onClick={close}>Cancel</Button>
-              <Button type="submit">Save</Button>
+              <Button variant="default" onClick={close}>{t('Cancel')}</Button>
+              <Button type="submit">{t('Save')}</Button>
             </Group>
           </Stack>
         </form>

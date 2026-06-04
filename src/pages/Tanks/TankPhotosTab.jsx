@@ -4,8 +4,9 @@ import { useDisclosure } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
 import { IconPlus, IconTrash, IconPhoto } from '@tabler/icons-react';
 import { tanksApi } from '../../api/tanks';
-
+import { useTranslation } from 'react-i18next';
 function TankPhotosTab({ tankId }) {
+  const { t } = useTranslation();
   const [photos, setPhotos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [opened, { open, close }] = useDisclosure(false);
@@ -63,8 +64,8 @@ function TankPhotosTab({ tankId }) {
   return (
     <Stack>
       <Group justify="space-between">
-        <Text fw={600}>Photos ({photos.length})</Text>
-        <Button leftSection={<IconPlus size={16} />} onClick={open}>Add Photo</Button>
+        <Text fw={600}>{t('Photos')} ({photos.length})</Text>
+        <Button leftSection={<IconPlus size={16} />} onClick={open}>{t('Add Photo')}</Button>
       </Group>
 
       {loading ? <Loader /> : photos.length > 0 ? (
@@ -93,23 +94,23 @@ function TankPhotosTab({ tankId }) {
             </Card>
           ))}
         </SimpleGrid>
-      ) : <Text c="dimmed" ta="center" py="md">No photos added yet.</Text>}
+      ) : <Text c="dimmed" ta="center" py="md">{t('No photos added yet.')}</Text>}
 
-      <Modal opened={opened} onClose={close} title="Add Photo" size="md">
+      <Modal opened={opened} onClose={close} title={t('Add Photo')} size="md">
         <form onSubmit={handleSubmit}>
           <Stack gap="sm">
-            <TextInput type="datetime-local" label="Date/Time" value={form.TakenAt} onChange={(e) => setForm({ ...form, TakenAt: e.target.value })} />
-            <TextInput label="Image URL" required value={form.ImageUrl} onChange={(e) => setForm({ ...form, ImageUrl: e.target.value })} placeholder="https://..." />
-            <Textarea label="Caption" value={form.Caption} onChange={(e) => setForm({ ...form, Caption: e.target.value })} placeholder="Post-trim, algae outbreak, etc." />
+            <TextInput type="datetime-local" label={t('Date/Time')} value={form.TakenAt} onChange={(e) => setForm({ ...form, TakenAt: e.target.value })} />
+            <TextInput label={t('Image URL')} required value={form.ImageUrl} onChange={(e) => setForm({ ...form, ImageUrl: e.target.value })} placeholder={t('https://...')} />
+            <Textarea label={t('Caption')} value={form.Caption} onChange={(e) => setForm({ ...form, Caption: e.target.value })} placeholder={t('Post-trim, algae outbreak, etc.')} />
             <Group justify="flex-end" mt="md">
-              <Button variant="default" onClick={close}>Cancel</Button>
-              <Button type="submit">Save</Button>
+              <Button variant="default" onClick={close}>{t('Cancel')}</Button>
+              <Button type="submit">{t('Save')}</Button>
             </Group>
           </Stack>
         </form>
       </Modal>
 
-      <Modal opened={!!viewPhoto} onClose={() => setViewPhoto(null)} size="xl" title={viewPhoto?.Caption || 'Photo'}>
+      <Modal opened={!!viewPhoto} onClose={() => setViewPhoto(null)} size="xl" title={viewPhoto?.Caption || t('Photo')}>
         {viewPhoto && (
           <Stack>
             <Image src={viewPhoto.ImageUrl} fit="contain" height={500} alt={viewPhoto.Caption} />

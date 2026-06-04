@@ -4,7 +4,7 @@ import { useDisclosure } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
 import { IconPlus } from '@tabler/icons-react';
 import { tanksApi } from '../../api/tanks';
-
+import { useTranslation } from 'react-i18next';
 // Common test kit fields shown by default; advanced fields (Fe, GH, KH, TDS, CO₂, salinity) hidden behind "+ Show advanced"
 const PARAM_FIELDS = [
   { key: 'pH', label: 'pH', advanced: false },
@@ -25,6 +25,7 @@ const PARAM_FIELDS = [
 // Displays water test results in a table with an expandable log form.
 // Users log only what they measure — all fields are nullable.
 function TankParametersTab({ tankId }) {
+  const { t } = useTranslation();
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [opened, { open, close }] = useDisclosure(false);
@@ -36,7 +37,7 @@ function TankParametersTab({ tankId }) {
       setLoading(true);
       const res = await tanksApi.getWaterParameters(tankId, { pageSize: 100 });
       setLogs(res.data || []);
-    } catch { notifications.show({ title: 'Error', message: 'Failed to load parameters', color: 'red' }); }
+    } catch { notifications.show({ title: 'Error', message: t('Failed to load parameters'), color: 'red' }); }
     finally { setLoading(false); }
   }, [tankId]);
 
@@ -50,12 +51,12 @@ function TankParametersTab({ tankId }) {
       PARAM_FIELDS.forEach(f => { if (data[f.key]) data[f.key] = parseFloat(data[f.key]); });
 
       await tanksApi.addWaterParameter(tankId, data);
-      notifications.show({ title: 'Success', message: 'Test result logged', color: 'green' });
+      notifications.show({ title: 'Success', message: t('Test result logged'), color: 'green' });
       close();
       setForm({ MeasuredAt: new Date().toISOString().slice(0, 16), Notes: '' });
       setShowAdvanced(false);
       loadLogs();
-    } catch { notifications.show({ title: 'Error', message: 'Failed to save', color: 'red' }); }
+    } catch { notifications.show({ title: 'Error', message: t('Failed to save'), color: 'red' }); }
   };
 
   const setF = (key, val) => setForm({ ...form, [key]: val });
@@ -77,37 +78,37 @@ function TankParametersTab({ tankId }) {
   return (
     <Stack>
       <Group justify="space-between">
-        <Text fw={600}>Water Test Results ({logs.length})</Text>
-        <Button leftSection={<IconPlus size={16} />} onClick={open}>Log Test</Button>
+        <Text fw={600}>{t('Water Test Results')} ({logs.length})</Text>
+        <Button leftSection={<IconPlus size={16} />} onClick={open}>{t('Log Test')}</Button>
       </Group>
 
       {loading ? <Loader /> : logs.length > 0 ? (
         <Table striped highlightOnHover>
           <Table.Thead>
             <Table.Tr>
-              <Table.Th>Date</Table.Th><Table.Th>pH</Table.Th><Table.Th>Temp</Table.Th>
-              <Table.Th>NH₃</Table.Th><Table.Th>NO₂</Table.Th><Table.Th>NO₃</Table.Th>
-              <Table.Th>PO₄</Table.Th><Table.Th>Notes</Table.Th>
+              <Table.Th>{t('Date')}</Table.Th><Table.Th>{t('pH')}</Table.Th><Table.Th>{t('Temp')}</Table.Th>
+              <Table.Th>{t('NH₃')}</Table.Th><Table.Th>{t('NO₂')}</Table.Th><Table.Th>{t('NO₃')}</Table.Th>
+              <Table.Th>{t('PO₄')}</Table.Th><Table.Th>{t('Notes')}</Table.Th>
             </Table.Tr>
           </Table.Thead>
           <Table.Tbody>{rows}</Table.Tbody>
         </Table>
-      ) : <Text c="dimmed" ta="center" py="md">No water tests logged yet.</Text>}
+      ) : <Text c="dimmed" ta="center" py="md">{t('No water tests logged yet.')}</Text>}
 
-      <Modal opened={opened} onClose={close} title="Log Water Test" size="lg">
+      <Modal opened={opened} onClose={close} title={t('Log Water Test')} size="lg">
         <form onSubmit={handleSubmit}>
           <Stack gap="sm">
-            <TextInput type="datetime-local" label="Date/Time" value={form.MeasuredAt} onChange={(e) => setF('MeasuredAt', e.target.value)} />
+            <TextInput type="datetime-local" label={t('Date/Time')} value={form.MeasuredAt} onChange={(e) => setF('MeasuredAt', e.target.value)} />
             {fields.map(f => (
-              <NumberInput key={f.key} label={f.label} value={form[f.key] || ''} onChange={(v) => setF(f.key, v)} decimalScale={3} />
+              <NumberInput key={f.key} label={t(f.label)} value={form[f.key] || ''} onChange={(v) => setF(f.key, v)} decimalScale={3} />
             ))}
             <Text size="xs" c="teal" style={{ cursor: 'pointer' }} onClick={() => setShowAdvanced(!showAdvanced)}>
-              {showAdvanced ? 'Hide advanced' : '+ Show advanced fields (GH, KH, TDS, CO₂, etc.)'}
+              {showAdvanced ? t('Hide advanced') : t('Show advanced fields (GH, KH, TDS, CO₂, etc.)')}
             </Text>
-            <Textarea label="Notes" value={form.Notes || ''} onChange={(e) => setF('Notes', e.target.value)} placeholder="How do plants/fish look?" />
+            <Textarea label={t('Notes')} value={form.Notes || ''} onChange={(e) => setF('Notes', e.target.value)} placeholder={t('How do plants/fish look?')} />
             <Group justify="flex-end" mt="md">
-              <Button variant="default" onClick={close}>Cancel</Button>
-              <Button type="submit">Save</Button>
+              <Button variant="default" onClick={close}>{t('Cancel')}</Button>
+              <Button type="submit">{t('Save')}</Button>
             </Group>
           </Stack>
         </form>

@@ -38,7 +38,7 @@ function TankOverviewTab({ tank }) {
     </Card>
   );
 
-  const formatDate = (d) => d ? new Date(d).toLocaleDateString() : 'Never';
+  const formatDate = (d) => d ? new Date(d).toLocaleDateString() : t('Never');
 
   const renderTimelineEntry = (entry) => {
     const d = entry.Data;
