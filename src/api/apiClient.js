@@ -15,6 +15,7 @@ apiClient.interceptors.request.use((config) => {
     if (token) {
         config.headers.Authorization = `Bearer ${token}`;
         console.log("build check", import.meta.env.VITE_API_URL);
+        
     }
     return config;
 });
