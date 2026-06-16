@@ -50,7 +50,7 @@ function TankFertilizationTab({ tankId }) {
       ]);
       setLogs(logsRes.data || []);
       setPresets(presetsRes.data || []);
-    } catch { notifications.show({ title: 'Error', message: 'Failed to load data', color: 'red' }); }
+    } catch { notifications.show({ title: t('Error'), message: t('Failed to load data'), color: 'red' }); }
     finally { setLoading(false); }
   }, [tankId]);
 
@@ -83,7 +83,7 @@ function TankFertilizationTab({ tankId }) {
         IsScheduled: form.IsScheduled, IsAdjustment: form.IsAdjustment, Notes: form.Notes || null,
       };
       await tanksApi.addFertilization(tankId, data);
-      notifications.show({ title: 'Success', message: 'Dose logged', color: 'green' });
+      notifications.show({ title: t('Success'), message: t('Dose logged'), color: 'green' });
       close();
       setForm({ DosedAt: new Date().toISOString().slice(0, 16), FertilizerPresetId: '',
         FertilizerType: 'AllInOne', DoseAmount: '', DoseUnit: 'ml',
@@ -91,7 +91,7 @@ function TankFertilizationTab({ tankId }) {
         EstimatedIronPpm: '', IsScheduled: true, IsAdjustment: false, Notes: '' });
       loadData();
     } catch (e) {
-      notifications.show({ title: 'Error', message: extractErrorMessage(e), color: 'red' });
+      notifications.show({ title: t('Error'), message: extractErrorMessage(e), color: 'red' });
     }
   };
 

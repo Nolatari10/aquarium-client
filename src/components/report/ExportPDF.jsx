@@ -163,7 +163,7 @@ function parseReportData(data, t) {
   return { tables };
 }
 
-function ReportDocument({ title, subtitle, data, t }) {
+function ReportDocument({ title, subtitle, data, t, tenantName }) {
   const { tables } = parseReportData(data, t);
   const today = new Date().toLocaleDateString();
 
@@ -172,7 +172,7 @@ function ReportDocument({ title, subtitle, data, t }) {
       <Page size="LETTER" style={styles.page}>
         <View style={styles.header}>
           <View style={styles.headerLeft}>
-            <Text style={styles.companyName}>{t('Aquarium Manager')}</Text>
+            <Text style={styles.companyName}>{tenantName || t('Aquarium Manager')}</Text>
             <Text style={styles.title}>{title}</Text>
             {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
           </View>
@@ -246,12 +246,12 @@ function ReportDocument({ title, subtitle, data, t }) {
   );
 }
 
-function ExportPDF({ data, title, subtitle, fileName }) {
+function ExportPDF({ data, title, subtitle, fileName, tenantName }) {
   const { t } = useTranslation();
 
   return (
     <PDFDownloadLink
-      document={<ReportDocument title={title} subtitle={subtitle} data={data} t={t} />}
+      document={<ReportDocument title={title} subtitle={subtitle} data={data} t={t} tenantName={tenantName} />}
       fileName={fileName}
     >
       {({ loading }) => (

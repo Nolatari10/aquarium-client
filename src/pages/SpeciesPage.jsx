@@ -4,6 +4,8 @@ import { useDisclosure } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
 import { IconPlus, IconEdit, IconTrash, IconSearch, IconFileImport, IconUpload, IconTrashX } from '@tabler/icons-react';
 import { speciesApi } from '../api/species';
+import { useConfirmModal } from '../hooks/useConfirmModal';
+import { extractErrorMessage } from '../tools/errorUtils';
 import { useTranslation } from 'react-i18next';
 
 function parseCSV(text) {
@@ -80,6 +82,7 @@ function parseJSONFile(text) {
 
 function SpeciesPage() {
   const { t } = useTranslation();
+  const { confirm, ConfirmModal } = useConfirmModal();
   const [species, setSpecies] = useState([]);
   const [filteredSpecies, setFilteredSpecies] = useState([]);
   const [editingSpecies, setEditingSpecies] = useState(null);
@@ -160,13 +163,13 @@ function SpeciesPage() {
       const result = response.data;
       if (result.Skipped > 0) {
         notifications.show({
-          title: 'Partial',
+          title: t('Partial'),
           message: `${result.Deleted} deleted, ${result.Skipped} skipped (linked lots).`,
           color: 'orange'
         });
       } else {
         notifications.show({
-          title: 'Deleted',
+          title: t('Deleted'),
           message: `${result.Deleted} species removed`,
           color: 'green'
         });
@@ -175,11 +178,11 @@ function SpeciesPage() {
       refreshSpecies();
     } catch (e) {
       notifications.show({
-        title: 'Error',
-        message: e.response?.data?.ErrorMessage || e.response?.data || 'Failed to delete species',
-        color: 'red'
-      });
-    } finally { setDeleting(false); }
+          title: t('Error'),
+          message: extractErrorMessage(e),
+          color: 'red'
+        });
+      } finally { setDeleting(false); }
   };
 
   const handleFileSelect = (e) => {
@@ -197,21 +200,21 @@ function SpeciesPage() {
       if (isCSV) {
         const { headers, rows } = parseCSV(text);
         if (headers.length === 0 || rows.length === 0) {
-          notifications.show({ title: 'Error', message: 'Empty or invalid CSV file', color: 'red' });
+          notifications.show({ title: t('Error'), message: t('Empty or invalid CSV file'), color: 'red' });
           return;
         }
         parsed = rows.map(row => mapCSVRow(headers, row)).filter(r => r.CommonName);
       } else {
         parsed = parseJSONFile(text);
         if (!parsed) {
-          notifications.show({ title: 'Error', message: t('Invalid JSON file — expected an array of species objects'), color: 'red' });
+          notifications.show({ title: t('Error'), message: t('Invalid JSON file — expected an array of species objects'), color: 'red' });
           return;
         }
         parsed = parsed.filter(r => r.CommonName);
       }
 
       if (parsed.length === 0) {
-        notifications.show({ title: 'Error', message: t('No valid species found in file'), color: 'red' });
+        notifications.show({ title: t('Error'), message: t('No valid species found in file'), color: 'red' });
         return;
       }
 
@@ -227,7 +230,7 @@ function SpeciesPage() {
       const response = await speciesApi.bulkImport(previewData);
       setImportResult(response.data);
       notifications.show({
-        title: 'Import complete',
+        title: t('Import complete'),
         message: `${response.data.Created} created, ${response.data.Skipped} skipped`,
         color: response.data.Skipped > 0 ? 'yellow' : 'green'
       });
@@ -235,7 +238,7 @@ function SpeciesPage() {
       loadSpecies(1);
     } catch (e) {
       notifications.show({
-        title: 'Error',
+        title: t('Error'),
         message: e.response?.data || t('Import failed'),
         color: 'red'
       });
@@ -264,16 +267,16 @@ function SpeciesPage() {
       };
       if (editingSpecies) {
         await speciesApi.update(editingSpecies.Id, data);
-        notifications.show({ title: 'Success', message: t('Species updated'), color: 'green' });
+        notifications.show({ title: t('Success'), message: t('Species updated'), color: 'green' });
       } else {
         await speciesApi.create(data);
-        notifications.show({ title: 'Success', message: t('Species created'), color: 'green' });
+        notifications.show({ title: t('Success'), message: t('Species created'), color: 'green' });
       }
       close();
       resetForm();
       refreshSpecies();
     } catch (e) {
-      notifications.show({ title: 'Error', message: e.response?.data?.ErrorMessage || t('Operation failed'), color: 'red' });
+      notifications.show({ title: t('Error'), message: extractErrorMessage(e), color: 'red' });
     } finally { setLoading(false); }
   };
 
@@ -293,13 +296,13 @@ function SpeciesPage() {
   };
 
   const handleDelete = async (id) => {
-    if (!confirm('Are you sure you want to delete this species?')) return;
+    if (!(await confirm(t('Are you sure you want to delete this species?')))) return;
     try {
       await speciesApi.delete(id);
-      notifications.show({ title: 'Success', message: t('Species deleted'), color: 'green' });
+      notifications.show({ title: t('Success'), message: t('Species deleted'), color: 'green' });
       refreshSpecies();
     } catch {
-      notifications.show({ title: 'Error', message: t('Failed to delete species'), color: 'red' });
+      notifications.show({ title: t('Error'), message: t('Failed to delete species'), color: 'red' });
     }
   };
 
@@ -414,14 +417,14 @@ function SpeciesPage() {
             <TextInput label={t('Variety')} value={formData.Variety} onChange={(e) => setFormData({ ...formData, Variety: e.target.value })} />
             <Select label={t('Category')} value={formData.Category} onChange={(value) => setFormData({ ...formData, Category: value })} data={['Fish', 'Invertebrate', 'Plant', 'Coral', 'Other']} />
             <Group grow>
-              <NumberInput label="Min Temp (°C)" decimalScale={1} step={0.1} value={formData.MinTemperature ?? ''} onChange={(v) => setFormData({ ...formData, MinTemperature: v })} />
-              <NumberInput label="Max Temp (°C)" decimalScale={1} step={0.1} value={formData.MaxTemperature ?? ''} onChange={(v) => setFormData({ ...formData, MaxTemperature: v })} />
+              <NumberInput label={t('Min Temp (°C)')} decimalScale={1} step={0.1} value={formData.MinTemperature ?? ''} onChange={(v) => setFormData({ ...formData, MinTemperature: v })} />
+              <NumberInput label={t('Max Temp (°C)')} decimalScale={1} step={0.1} value={formData.MaxTemperature ?? ''} onChange={(v) => setFormData({ ...formData, MaxTemperature: v })} />
             </Group>
             <Group grow>
-              <NumberInput label="Min pH" decimalScale={1} step={0.1} value={formData.MinPH ?? ''} onChange={(v) => setFormData({ ...formData, MinPH: v })} />
-              <NumberInput label="Max pH" decimalScale={1} step={0.1} value={formData.MaxPH ?? ''} onChange={(v) => setFormData({ ...formData, MaxPH: v })} />
+              <NumberInput label={t('Min pH')} decimalScale={1} step={0.1} value={formData.MinPH ?? ''} onChange={(v) => setFormData({ ...formData, MinPH: v })} />
+              <NumberInput label={t('Max pH')} decimalScale={1} step={0.1} value={formData.MaxPH ?? ''} onChange={(v) => setFormData({ ...formData, MaxPH: v })} />
             </Group>
-            <TextInput label="Image URL" value={formData.ImageUrl} onChange={(e) => setFormData({ ...formData, ImageUrl: e.target.value })} />
+            <TextInput label={t('Image URL')} value={formData.ImageUrl} onChange={(e) => setFormData({ ...formData, ImageUrl: e.target.value })} />
             <Group justify="flex-end" mt="md">
               <Button variant="default" onClick={close} disabled={loading}>{t('Cancel')}</Button>
               <Button type="submit" loading={loading}>{editingSpecies ? t('Update') : t('Create')}</Button>
@@ -449,7 +452,7 @@ function SpeciesPage() {
                   id="species-file-input"
                 />
                 <Button component="label" htmlFor="species-file-input" variant="light" leftSection={<IconFileImport size={16} />}>
-                  Choose File (.json or .csv)
+                  {t('Choose File (.json or .csv)')}
                 </Button>
                 <Text size="xs" c="dimmed">{t('JSON: array of species objects. CSV: columns CommonName, ScientificName, {t("Variety")}, {t("Category")}, Min{t("Temperature")}, Max{t("Temperature")}, MinPH, MaxPH, ImageUrl')}</Text>
               </Stack>
@@ -474,7 +477,7 @@ function SpeciesPage() {
                     <Table.Th>{t('Scientific Name')}</Table.Th>
                     <Table.Th>{t('Variety')}</Table.Th>
                     <Table.Th>{t('Category')}</Table.Th>
-                    <Table.Th>Temp (°C)</Table.Th>
+                    <Table.Th>{t('Temp (°C)')}</Table.Th>
                   </Table.Tr>
                 </Table.Thead>
                 <Table.Tbody>
@@ -496,14 +499,14 @@ function SpeciesPage() {
             <Paper p="md" withBorder>
               <Stack gap="xs">
                 <Group gap="md">
-                  <Badge color="teal" size="lg">Total: {importResult.TotalProcessed}</Badge>
-                  <Badge color="green" size="lg">Created: {importResult.Created}</Badge>
-                  {importResult.Skipped > 0 && <Badge color="orange" size="lg">Skipped: {importResult.Skipped}</Badge>}
+                  <Badge color="teal" size="lg">{t('Total: {count}', { count: importResult.TotalProcessed })}</Badge>
+                  <Badge color="green" size="lg">{t('Created: {count}', { count: importResult.Created })}</Badge>
+                  {importResult.Skipped > 0 && <Badge color="orange" size="lg">{t('Skipped: {count}', { count: importResult.Skipped })}</Badge>}
                 </Group>
                 {importResult.Errors?.length > 0 && (
                   <Paper p="sm" withBorder bg="red.0">
                     <Stack gap={4}>
-                      <Text size="sm" fw={600} c="red.7">Errors:</Text>
+                      <Text size="sm" fw={600} c="red.7">{t('Errors:')}</Text>
                       {importResult.Errors.map((err, idx) => (
                         <Text key={idx} size="xs" c="red.7">{err}</Text>
                       ))}
@@ -515,7 +518,7 @@ function SpeciesPage() {
           )}
 
           <Group justify="space-between">
-            <Button variant="default" onClick={handleCloseImport}>Close</Button>
+            <Button variant="default" onClick={handleCloseImport}>{t('Close')}</Button>
             {previewData.length > 0 && !importResult && (
               <Button onClick={handleImport} loading={importing} leftSection={<IconUpload size={16} />}>
                 {t('Import')} {previewData.length} {t('species')}
@@ -533,16 +536,17 @@ function SpeciesPage() {
       <Modal opened={bulkDeleteOpened} onClose={closeBulkDelete} title={t('Delete Selected Species')} size="sm">
         <Stack gap="md">
           <Text>
-            Are you sure you want to delete <strong>{selectedIds.length}</strong> species? This action cannot be undone.
+            {t('Are you sure you want to delete {count} species? This action cannot be undone.', { count: selectedIds.length })}
           </Text>
           <Group justify="flex-end">
-            <Button variant="default" onClick={closeBulkDelete} disabled={deleting}>Cancel</Button>
+            <Button variant="default" onClick={closeBulkDelete} disabled={deleting}>{t('Cancel')}</Button>
             <Button color="red" onClick={handleBulkDelete} loading={deleting} leftSection={<IconTrash size={16} />}>
               {t('Delete')} {selectedIds.length} {t('species')}
             </Button>
           </Group>
         </Stack>
       </Modal>
+      {ConfirmModal}
     </Box>
   );
 }

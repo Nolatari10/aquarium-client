@@ -14,8 +14,6 @@ apiClient.interceptors.request.use((config) => {
     const token = localStorage.getItem('aquarium_token');
     if (token) {
         config.headers.Authorization = `Bearer ${token}`;
-        console.log("build check", import.meta.env.VITE_API_URL);
-        
     }
     return config;
 });

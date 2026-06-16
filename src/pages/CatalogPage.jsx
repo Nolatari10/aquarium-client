@@ -80,12 +80,13 @@ function CatalogPage() {
               )}
               <Group justify="space-between" mb="xs">
                 <Box>
-                  <Text fw={700} size="lg">
+                
+                  {item.VariantName !== 'Standard' && (
+                    <Text fw={700} size="lg" >{item.CommonName}</Text>
+                  )}
+                    <Text fw={200} size="lg" c="dimmed" fs="italic">
                     {item.VariantName !== 'Standard' ? item.VariantName : item.CommonName}
                   </Text>
-                  {item.VariantName !== 'Standard' && (
-                    <Text size="xs" c="dimmed" fs="italic">{item.CommonName}</Text>
-                  )}
                 </Box>
                 {getStockBadge(item.TotalStock)}
               </Group>

@@ -1,22 +1,25 @@
 import { Center, Loader, Text, Button, Stack } from '@mantine/core';
 import { IconRefresh } from '@tabler/icons-react';
+import { useTranslation } from 'react-i18next';
 
 export function LoadingState({ height = 200 }) {
+  const { t } = useTranslation();
   return (
     <Center style={{ height }}>
       <Stack align="center" gap="sm">
         <Loader color="aqua" size="md" />
-        <Text size="sm" c="dimmed">Loading...</Text>
+        <Text size="sm" c="dimmed">{t('Loading...')}</Text>
       </Stack>
     </Center>
   );
 }
 
-export function ErrorState({ message = 'Something went wrong', onRetry, height = 200 }) {
+export function ErrorState({ message, onRetry, height = 200 }) {
+  const { t } = useTranslation();
   return (
     <Center style={{ height }}>
       <Stack align="center" gap="md">
-        <Text size="sm" c="red.5" ta="center" maw={280}>{message}</Text>
+        <Text size="sm" c="red.5" ta="center" maw={280}>{message || t('Something went wrong')}</Text>
         {onRetry && (
           <Button
             variant="light"
@@ -25,7 +28,7 @@ export function ErrorState({ message = 'Something went wrong', onRetry, height =
             leftSection={<IconRefresh size={14} />}
             onClick={onRetry}
           >
-            Retry
+            {t('Retry')}
           </Button>
         )}
       </Stack>
@@ -34,12 +37,13 @@ export function ErrorState({ message = 'Something went wrong', onRetry, height =
 }
 
 export function EmptyState({
-  title = 'No data',
-  description = 'There is nothing here yet.',
+  title,
+  description,
   action,
   height = 200,
   icon: Icon,
 }) {
+  const { t } = useTranslation();
   return (
     <Center style={{ height }}>
       <Stack align="center" gap="sm" maw={320}>
@@ -48,8 +52,8 @@ export function EmptyState({
             <Icon size={40} stroke={1.5} style={{ color: 'var(--aqua-text-faint)' }} />
           </div>
         )}
-        <Text size="sm" fw={500} ta="center">{title}</Text>
-        <Text size="xs" c="dimmed" ta="center">{description}</Text>
+        <Text size="sm" fw={500} ta="center">{title || t('No data')}</Text>
+        <Text size="xs" c="dimmed" ta="center">{description || t('There is nothing here yet.')}</Text>
         {action}
       </Stack>
     </Center>

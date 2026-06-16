@@ -3,7 +3,22 @@ import { Box, Text, Card, Stack, Group, Switch, NumberInput, Button, Paper, Aler
 import { notifications } from '@mantine/notifications';
 import { IconAlertCircle, IconCheck } from '@tabler/icons-react';
 import { alertsApi } from '../api/alerts';
+import { LoadingState, EmptyState } from '../components/ui';
 import { useTranslation } from 'react-i18next';
+
+function formatAlertType(t, type) {
+  const labels = {
+    HighMortalityRate: t('High Mortality Rate')
+  };
+  return labels[type] || type;
+}
+
+function getAlertDescription(t, type) {
+  const descriptions = {
+    HighMortalityRate: t('Alert when daily mortality rate exceeds this percentage.')
+  };
+  return descriptions[type] || '';
+}
 
 function AlertConfigsPage() {
   const { t } = useTranslation();
@@ -22,7 +37,7 @@ function AlertConfigsPage() {
       const res = await alertsApi.getConfigs();
       setConfigs(res.data || []);
     } catch {
-      notifications.show({ title: 'Error', message: t('Failed to load alert configs'), color: 'red' });
+      notifications.show({ title: t('Error'), message: t('Failed to load alert configs'), color: 'red' });
     } finally {
       setLoading(false);
     }
@@ -56,19 +71,17 @@ function AlertConfigsPage() {
       </Alert>
 
       {loading ? (
-        <Text c="dimmed">{t('Loading...')}</Text>
+        <LoadingState />
       ) : configs.length === 0 ? (
-        <Paper p="xl" ta="center" withBorder>
-          <Text c="dimmed">{t('No alert configs found. Run database migrations to seed defaults.')}</Text>
-        </Paper>
+        <EmptyState title={t('No alert configs found')} description={t('Run database migrations to seed defaults.')} />
       ) : (
         <Stack gap="md">
           {configs.map((config) => (
             <Card key={config.Id} padding="lg" radius="md" withBorder>
               <Group justify="space-between" wrap="wrap">
                 <Box style={{ flex: 1 }}>
-                  <Text fw={600}>{t(formatAlertType(config.AlertType))}</Text>
-                  <Text size="xs" c="dimmed" mt={4}>{t(getAlertDescription(config.AlertType))}</Text>
+                  <Text fw={600}>{formatAlertType(t, config.AlertType)}</Text>
+                  <Text size="xs" c="dimmed" mt={4}>{getAlertDescription(t, config.AlertType)}</Text>
                 </Box>
                 <Switch
                   label={t('Enabled')}
@@ -103,21 +116,6 @@ function AlertConfigsPage() {
       )}
     </Box>
   );
-}
-
-function formatAlertType(type) {
-  
-  const labels = {
-    HighMortalityRate: 'High Mortality Rate'
-  };
-  return labels[type] || type;
-}
-
-function getAlertDescription(type) {
-  const descriptions = {
-    HighMortalityRate: 'Alert when a lot exceeds this non-sold mortality percentage'
-  };
-  return descriptions[type] || '';
 }
 
 export default AlertConfigsPage;

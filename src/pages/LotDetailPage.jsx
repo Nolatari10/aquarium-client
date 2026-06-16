@@ -8,6 +8,7 @@ import {
   IconArrowLeft, IconPackage, IconSkull, IconShoppingCart, IconClock,
   IconCalendar, IconReceipt
 } from '@tabler/icons-react';
+import { LoadingState, EmptyState } from '../components/ui';
 import { inventoryLotsApi } from '../api/inventoryLots';
 import { notifications } from '@mantine/notifications';
 import { useTranslation } from 'react-i18next';
@@ -30,20 +31,13 @@ function LotDetailPage() {
       const res = await inventoryLotsApi.getHistory(id);
       setHistory(res.data);
     } catch {
-      notifications.show({ title: 'Error', message: 'Failed to load lot history', color: 'red' });
+      notifications.show({ title: t('Error'), message: t('Failed to load lot history'), color: 'red' });
     } finally {
       setLoading(false);
     }
   };
 
-  if (loading) {
-    return (
-      <Stack align="center" py="xl">
-        <Loader />
-        <Text c="dimmed">{t('Loading lot history...')}</Text>
-      </Stack>
-    );
-  }
+  if (loading) return <LoadingState />;
 
   if (!history) {
     return (
@@ -51,9 +45,7 @@ function LotDetailPage() {
         <Button variant="subtle" leftSection={<IconArrowLeft size={16} />} onClick={() => navigate('/inventory')} mb="lg">
           {t('Back to Inventory')}
         </Button>
-        <Paper p="xl" ta="center" withBorder>
-          <Text c="dimmed">{t('Lot not found')}</Text>
-        </Paper>
+        <EmptyState title={t('Lot not found')} />
       </Box>
     );
   }

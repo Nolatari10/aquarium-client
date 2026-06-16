@@ -12,8 +12,10 @@ import {
 } from '@mantine/core';
 import { IconLogin, IconAlertCircle } from '@tabler/icons-react';
 import { useAuth } from '../hooks/useAuth';
+import { useTranslation } from 'react-i18next';
 
 export default function LoginPage() {
+  const { t } = useTranslation();
   const { login, loading } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -24,7 +26,7 @@ export default function LoginPage() {
     setError('');
 
     if (!email.trim() || !password) {
-      setError('Please enter both email and password.');
+      setError(t('Please enter both email and password.'));
       return;
     }
 
@@ -37,10 +39,10 @@ export default function LoginPage() {
   return (
     <Container size={420} my={80}>
       <Title ta="center" fw={900}>
-        Aquarium Manager
+        {t('Aquarium Manager')}
       </Title>
       <Text c="dimmed" size="sm" ta="center" mt={5}>
-        Sign in to manage your store
+        {t('Sign in to manage your store')}
       </Text>
 
       <Paper withBorder shadow="md" p={30} mt={30} radius="md">
@@ -53,8 +55,8 @@ export default function LoginPage() {
             )}
 
             <TextInput
-              label="Email"
-              placeholder="you@example.com"
+              label={t('Email')}
+              placeholder={t('you@example.com')}
               value={email}
               onChange={(e) => setEmail(e.currentTarget.value)}
               required
@@ -62,8 +64,8 @@ export default function LoginPage() {
             />
 
             <PasswordInput
-              label="Password"
-              placeholder="Your password"
+              label={t('Password')}
+              placeholder={t('Your password')}
               value={password}
               onChange={(e) => setPassword(e.currentTarget.value)}
               required
@@ -75,7 +77,7 @@ export default function LoginPage() {
               leftSection={<IconLogin size={16} />}
               loading={loading}
             >
-              Sign in
+              {t('Sign in')}
             </Button>
           </Stack>
         </form>

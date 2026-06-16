@@ -64,7 +64,7 @@ function SalesPage() {
       setSales(data.Items || []);
       setTotalPages(data.TotalPages || 1);
     } catch {
-      notifications.show({ title: 'Error', message: t('Failed to load data'), color: 'red' });
+      notifications.show({ title: t('Error'), message: t('Failed to load data'), color: 'red' });
     } finally {
       setListLoading(false);
     }
@@ -92,7 +92,7 @@ function SalesPage() {
     const stock = c.TotalStock || 0;
     return {
       value: c.SpeciesVariantId.toString(),
-      label: `${label}  ·  ${stock > 0 ? `Stock: ${stock}` : 'Out of stock'}`,
+      label: `${label}  ·  ${stock > 0 ? `${t('Stock')}: ${stock}` : t('Out of Stock')}`,
     };
   });
 

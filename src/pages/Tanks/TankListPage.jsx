@@ -4,6 +4,8 @@ import { Button, Table, Group, Text, ActionIcon, Badge, Box, Stack, TextInput, S
 import { notifications } from '@mantine/notifications';
 import { IconPlus, IconEye, IconTrash, IconSearch, IconFish } from '@tabler/icons-react';
 import { tanksApi } from '../../api/tanks';
+import { TANK_TYPE_LABELS, TANK_TYPE_COLORS } from '../../constants/tankConstants';
+import { useConfirmModal } from '../../hooks/useConfirmModal';
 import { useTranslation } from 'react-i18next';
 
 const styles = `
@@ -21,32 +23,10 @@ const styles = `
 }
 `;
 
-// Maps backend enum values to human-readable labels and badge colors
-const TANK_TYPE_LABELS = {
-  PlantedHighTech: 'Planted High-Tech',
-  PlantedLowTech: 'Planted Low-Tech',
-  Aquascape: 'Aquascape',
-  Biotope: 'Biotope',
-  Shrimp: 'Shrimp',
-  Breeding: 'Breeding',
-  Quarantine: 'Quarantine',
-  Other: 'Other',
-};
-
-const TANK_TYPE_COLORS = {
-  PlantedHighTech: 'teal',
-  PlantedLowTech: 'green',
-  Aquascape: 'blue',
-  Biotope: 'grape',
-  Shrimp: 'red',
-  Breeding: 'orange',
-  Quarantine: 'yellow',
-  Other: 'gray',
-};
-
 // Displays all tanks for the current user with quick indicators (last test, dose, maintenance) and filters by type/status
 function TankListPage() {
   const { t } = useTranslation();
+  const { confirm, ConfirmModal } = useConfirmModal();
   const navigate = useNavigate();
   const [tanks, setTanks] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -77,7 +57,7 @@ function TankListPage() {
 
   // Soft-deletes a tank and refreshes the list
   const handleDelete = async (id) => {
-    if (!confirm(t('Are you sure you want to delete this tank?'))) return;
+    if (!(await confirm(t('Are you sure you want to delete this tank?')))) return;
     try {
       await tanksApi.delete(id);
       notifications.show({ title: t('Success'), message: t('Tank deleted'), color: 'green' });
@@ -208,6 +188,7 @@ function TankListPage() {
           <Button variant="light" onClick={() => navigate('/tanks/new')}>{t('Add your first tank')}</Button>
         </Stack>
       )}
+      {ConfirmModal}
     </Box>
   );
 }

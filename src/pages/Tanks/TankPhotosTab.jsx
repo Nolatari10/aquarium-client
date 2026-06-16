@@ -4,9 +4,11 @@ import { useDisclosure } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
 import { IconPlus, IconTrash, IconPhoto } from '@tabler/icons-react';
 import { tanksApi } from '../../api/tanks';
+import { useConfirmModal } from '../../hooks/useConfirmModal';
 import { useTranslation } from 'react-i18next';
 function TankPhotosTab({ tankId }) {
   const { t } = useTranslation();
+  const { confirm, ConfirmModal } = useConfirmModal();
   const [photos, setPhotos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [opened, { open, close }] = useDisclosure(false);
@@ -25,7 +27,7 @@ function TankPhotosTab({ tankId }) {
       const res = await tanksApi.getPhotos(tankId, { pageSize: 50 });
       setPhotos(res.data || []);
     } catch {
-      notifications.show({ title: 'Error', message: 'Failed to load photos', color: 'red' });
+      notifications.show({ title: t('Error'), message: t('Failed to load photos'), color: 'red' });
     } finally { setLoading(false); }
   }, [tankId]);
 
@@ -33,7 +35,7 @@ function TankPhotosTab({ tankId }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.ImageUrl.trim()) return notifications.show({ title: 'Error', message: 'Image URL is required', color: 'red' });
+    if (!form.ImageUrl.trim()) return notifications.show({ title: t('Error'), message: t('Image URL is required'), color: 'red' });
     try {
       const data = {
         ...form,
@@ -41,23 +43,23 @@ function TankPhotosTab({ tankId }) {
         LinkedLogType: form.LinkedLogType || null,
       };
       await tanksApi.addPhoto(tankId, data);
-      notifications.show({ title: 'Success', message: 'Photo added', color: 'green' });
+      notifications.show({ title: t('Success'), message: t('Photo added'), color: 'green' });
       close();
       setForm({ TakenAt: new Date().toISOString().slice(0, 16), ImageUrl: '', Caption: '', LinkedLogType: '', LinkedLogId: '' });
       loadPhotos();
     } catch {
-      notifications.show({ title: 'Error', message: 'Failed to save', color: 'red' });
+      notifications.show({ title: t('Error'), message: t('Failed to save'), color: 'red' });
     }
   };
 
   const handleDelete = async (photoId) => {
-    if (!confirm('Delete this photo?')) return;
+    if (!(await confirm(t('Delete this photo?')))) return;
     try {
       await tanksApi.deletePhoto(photoId);
-      notifications.show({ title: 'Success', message: 'Photo deleted', color: 'green' });
+      notifications.show({ title: t('Success'), message: t('Photo deleted'), color: 'green' });
       loadPhotos();
     } catch {
-      notifications.show({ title: 'Error', message: 'Failed to delete', color: 'red' });
+      notifications.show({ title: t('Error'), message: t('Failed to delete'), color: 'red' });
     }
   };
 
@@ -77,7 +79,7 @@ function TankPhotosTab({ tankId }) {
                   src={p.ImageUrl}
                   height={200}
                   fit="cover"
-                  alt={p.Caption || 'Tank photo'}
+                  alt={p.Caption || t('Tank photo')}
                   style={{ cursor: 'pointer' }}
                   onClick={() => setViewPhoto(p)}
                   fallbackSrc={`data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200"><rect fill="#eee" width="200" height="200"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="#999" font-size="14">No image</text></svg>')}`}
@@ -86,7 +88,7 @@ function TankPhotosTab({ tankId }) {
               <Stack gap={4} mt="sm">
                 <Text size="xs" c="dimmed">{new Date(p.TakenAt).toLocaleDateString()}</Text>
                 {p.Caption && <Text size="sm">{p.Caption}</Text>}
-                {p.LinkedLogType && <Text size="xs" c="teal">Linked: {p.LinkedLogType}</Text>}
+                {p.LinkedLogType && <Text size="xs" c="teal">{t('Linked: {type}', { type: p.LinkedLogType })}</Text>}
                 <ActionIcon variant="subtle" color="red" size="sm" onClick={() => handleDelete(p.Id)} style={{ alignSelf: 'flex-end' }}>
                   <IconTrash size={14} />
                 </ActionIcon>
@@ -115,10 +117,11 @@ function TankPhotosTab({ tankId }) {
           <Stack>
             <Image src={viewPhoto.ImageUrl} fit="contain" height={500} alt={viewPhoto.Caption} />
             <Text size="sm" c="dimmed">{new Date(viewPhoto.TakenAt).toLocaleDateString()}</Text>
-            {viewPhoto.LinkedLogType && <Text size="xs" c="teal">Linked to: {viewPhoto.LinkedLogType}</Text>}
+            {viewPhoto.LinkedLogType && <Text size="xs" c="teal">{t('Linked to: {type}', { type: viewPhoto.LinkedLogType })}</Text>}
           </Stack>
         )}
       </Modal>
+      {ConfirmModal}
     </Stack>
   );
 }

@@ -3,4 +3,5 @@ export { default as PageHero } from './PageHero';
 export { default as StatusBadge } from './StatusBadge';
 export { default as SectionCard } from './SectionCard';
 export { default as GlassPanel } from './GlassPanel';
+export { default as DataTable } from './DataTable';
 export { default as AsyncStateWrapper, LoadingState, ErrorState, EmptyState } from './AsyncStateWrapper';

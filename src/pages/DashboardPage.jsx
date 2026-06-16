@@ -1,10 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Group, SimpleGrid, Box, Button, Stack, Text, Paper } from '@mantine/core';
+import { Group, SimpleGrid, Box, Button, Stack, Text, Paper, Badge } from '@mantine/core';
 import { useNavigate } from 'react-router-dom';
 import {
   IconFish, IconPackage, IconShoppingCart, IconCash,
   IconAlertTriangle, IconSkull, IconArrowRight,
-  IconPlus, IconDroplet,
+  IconPlus, IconDroplet, IconRocket,
 } from '@tabler/icons-react';
 import { catalogApi } from '../api/catalog';
 import { salesApi } from '../api/sales';
@@ -20,6 +20,7 @@ function DashboardPage() {
   const [stats, setStats] = useState(null);
   const [recentSales, setRecentSales] = useState([]);
   const [highMortalityAlerts, setHighMortalityAlerts] = useState([]);
+  const [lowStockItems, setLowStockItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
 
@@ -42,6 +43,7 @@ function DashboardPage() {
       }, 0);
 
       const lowStockCount = catalogData.filter(item => item.TotalStock < 10).length;
+      const lowStock = catalogData.filter(item => item.TotalStock <= 5);
 
       setStats({
         totalSpecies: stockData.TotalSpecies || 0,
@@ -52,6 +54,7 @@ function DashboardPage() {
       });
 
       setRecentSales(salesData.slice(-5).reverse());
+      setLowStockItems(lowStock);
 
       try {
         const alertsData = await alertsApi.getActiveHighMortalityAlerts();
@@ -116,9 +119,28 @@ function DashboardPage() {
         <SectionCard>
           <AsyncStateWrapper error errorMessage={t('Failed to load dashboard data')} onRetry={loadDashboardData} />
         </SectionCard>
+      ) : stats?.totalSpecies === 0 && stats?.totalStock === 0 && stats?.recentSales === 0 ? (
+        <SectionCard title={t('Welcome to Aquarium Manager')}>
+          <Stack gap="md" align="center" py="md">
+            <IconRocket size={48} stroke={1.5} style={{ color: 'var(--aqua-primary)', opacity: 0.6 }} />
+            <Text size="sm" c="dimmed" ta="center" maw={400}>
+              {t('Get started by adding your first species and receiving inventory.')}
+            </Text>
+            <SimpleGrid cols={{ base: 1, sm: 3 }} spacing="sm" w="100%" maw={500}>
+              <Button variant="light" color="aqua" fullWidth leftSection={<IconPlus size={16} />} onClick={() => navigate('/species')}>
+                {t('Add Species')}
+              </Button>
+              <Button variant="light" color="green" fullWidth leftSection={<IconPackage size={16} />} onClick={() => navigate('/inventory/bulk-receive')}>
+                {t('Receive Inventory')}
+              </Button>
+              <Button variant="light" color="yellow" fullWidth leftSection={<IconShoppingCart size={16} />} onClick={() => navigate('/sales')}>
+                {t('Record Sale')}
+              </Button>
+            </SimpleGrid>
+          </Stack>
+        </SectionCard>
       ) : (
         <>
-
       {stats?.lowStockCount > 0 && (
         <Paper
           p="md"
@@ -142,6 +164,31 @@ function DashboardPage() {
             </Button>
           </Group>
         </Paper>
+      )}
+
+      {lowStockItems.length > 0 && (
+        <SectionCard
+          title={t('Low Stock Items')}
+          action={
+            <Button variant="subtle" size="xs" onClick={() => navigate('/inventory')} color="aqua">
+              {t('View All')}
+            </Button>
+          }
+        >
+          <SimpleGrid cols={{ base: 1, sm: 2, md: 3 }} spacing="sm">
+            {lowStockItems.slice(0, 6).map(item => (
+              <Paper key={item.SpeciesVariantId} p="sm" radius="md" withBorder>
+                <Group justify="space-between" mb={4}>
+                  <Text size="sm" fw={500} lineClamp={1}>
+                    {item.VariantName !== 'Standard' ? `${item.CommonName} — ${item.VariantName}` : item.CommonName}
+                  </Text>
+                  <Badge color="yellow" size="sm">{item.TotalStock}</Badge>
+                </Group>
+                <Text size="xs" c="dimmed" fs="italic" lineClamp={1}>{item.ScientificName}</Text>
+              </Paper>
+            ))}
+          </SimpleGrid>
+        </SectionCard>
       )}
 
       <SimpleGrid cols={{ base: 1, lg: 2 }} spacing="lg" mb="lg">

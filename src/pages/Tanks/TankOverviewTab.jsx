@@ -140,7 +140,7 @@ function TankOverviewTab({ tank }) {
               {timeline.map(renderTimelineEntry)}
             </Table.Tbody>
           </Table>
-        ) : <Text size="sm" c="dimmed" ta="center" py="md">No activity yet. Start logging!</Text>}
+        ) : <Text size="sm" c="dimmed" ta="center" py="md">{t('No activity yet. Start logging!')}</Text>}
       </Card>
     </Stack>
   );

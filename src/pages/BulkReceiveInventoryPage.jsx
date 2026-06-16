@@ -7,9 +7,8 @@ import { notifications } from '@mantine/notifications';
 import { IconArrowLeft, IconPlus, IconTrash, IconCopy, IconDeviceFloppy } from '@tabler/icons-react';
 import { useNavigate } from 'react-router-dom';
 import { inventoryLotsApi } from '../api/inventoryLots';
-import { speciesApi } from '../api/species';
-import { speciesVariantsApi } from '../api/speciesVariantsApi';
 import { suppliersApi } from '../api/suppliers';
+import { useSpeciesVariantOptions } from '../hooks/useSpeciesVariantOptions';
 import { useTranslation } from 'react-i18next';
 
 let rowIdCounter = 0;
@@ -35,7 +34,7 @@ function BulkReceiveInventoryPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
 
-  const [variantOptions, setVariantOptions] = useState([]);
+  const { options: variantOptions } = useSpeciesVariantOptions();
   const [suppliers, setSuppliers] = useState([]);
   const [saving, setSaving] = useState(false);
 
@@ -57,45 +56,8 @@ function BulkReceiveInventoryPage() {
   const getCellRef = (rowIdx, col) => `${rowIdx}-${col}`;
 
   useEffect(() => {
-    loadDropdowns();
+    suppliersApi.getAll().then(r => setSuppliers(r.data || [])).catch(() => {});
   }, []);
-
-  const loadDropdowns = async () => {
-    try {
-      const [speciesResult, suppliersResult] = await Promise.allSettled([
-        speciesApi.getAll(1, 1000),
-        suppliersApi.getAll(),
-      ]);
-      if (speciesResult.status === 'fulfilled') {
-        const speciesList = speciesResult.value.data.Items || [];
-        const variantPromises = speciesList.map((s) =>
-          speciesVariantsApi.getBySpeciesId(s.Id)
-            .then((r) => r.data || [])
-            .catch(() => [])
-        );
-        const allVariantArrays = await Promise.allSettled(variantPromises);
-        const combined = [];
-        speciesList.forEach((s, i) => {
-          const vars =
-            allVariantArrays[i]?.status === 'fulfilled'
-              ? allVariantArrays[i].value
-              : [];
-          vars.forEach((v) => {
-            combined.push({
-              value: v.Id.toString(),
-              label: `${s.CommonName} — ${v.VariantName}`,
-            });
-          });
-        });
-        setVariantOptions(combined);
-      }
-      if (suppliersResult.status === 'fulfilled') {
-        setSuppliers(suppliersResult.value.data || []);
-      }
-    } catch {
-      /* ignore */
-    }
-  };
 
   const addRow = useCallback(() => {
     setRows((prev) => [...prev, emptyRow(headerSupplierId, headerArrivalDate, headerNotes)]);
@@ -147,24 +109,24 @@ function BulkReceiveInventoryPage() {
 
     const errors = [];
     if (currentRows.length === 0 || currentRows.every((r) => !r.SpeciesVariantId)) {
-      errors.push('Debe agregar al menos una fila con especie/variedad.');
+      errors.push(t('At least one row with species/variant is required.'));
     }
     currentRows.forEach((row, i) => {
       if (row.SpeciesVariantId && (!row.InitialQuantity || Number(row.InitialQuantity) <= 0)) {
-        errors.push(`Fila ${i + 1}: Cantidad inicial debe ser mayor a cero.`);
+        errors.push(t('Row {row}: Initial quantity must be greater than zero.', { row: i + 1 }));
       }
       if (row.SpeciesVariantId && (!row.UnitCost || Number(row.UnitCost) <= 0)) {
-        errors.push(`Fila ${i + 1}: Costo unitario debe ser mayor a cero.`);
+        errors.push(t('Row {row}: Unit cost must be greater than zero.', { row: i + 1 }));
       }
       if (row.SpeciesVariantId && Number(row.DeadOnArrival) < 0) {
-        errors.push(`Fila ${i + 1}: Decesos al llegar no debe ser negativo.`);
+        errors.push(t('Row {row}: Dead on arrival must not be negative.', { row: i + 1 }));
       }
       if (
         row.SpeciesVariantId &&
         Number(row.DeadOnArrival) > Number(row.InitialQuantity)
       ) {
         errors.push(
-          `Fila ${i + 1}: Decesos al llegar no puede exceder la cantidad inicial.`
+          t('Row {row}: Dead on arrival cannot exceed the initial quantity.', { row: i + 1 })
         );
       }
     });
@@ -195,7 +157,7 @@ function BulkReceiveInventoryPage() {
       const result = await inventoryLotsApi.createBulk({ Items: items });
       notifications.show({
         title: t('Success'),
-        message: `${result.data.TotalCreated} lotes creados (${result.data.TotalQuantity} unidades)`,
+        message: t('{count} lots created ({total} units)', { count: result.data.TotalCreated, total: result.data.TotalQuantity }),
         color: 'green',
       });
       setRows([emptyRow(headerSupplierId, headerArrivalDate, headerNotes)]);

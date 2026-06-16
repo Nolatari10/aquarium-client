@@ -7,10 +7,12 @@ import { notifications } from '@mantine/notifications';
 import { IconTrash, IconUserPlus, IconKey, IconAlertCircle, IconCheck } from '@tabler/icons-react';
 import { usersApi } from '../api/users';
 import { useAuth } from '../hooks/useAuth';
+import { useConfirmModal } from '../hooks/useConfirmModal';
 import { useTranslation } from 'react-i18next';
 
 function UserManagementPage() {
   const { t } = useTranslation();
+  const { confirm, ConfirmModal } = useConfirmModal();
   const { user } = useAuth();
   const isOwner = user?.role === 'Owner';
 
@@ -29,7 +31,7 @@ function UserManagementPage() {
       const res = await usersApi.getAll();
       setUsers(res.data || []);
     } catch {
-      notifications.show({ title: 'Error', message: t('Failed to load users'), color: 'red' });
+      notifications.show({ title: t('Error'), message: t('Failed to load users'), color: 'red' });
     } finally { setLoadingUsers(false); }
   }, [t]);
 
@@ -39,29 +41,29 @@ function UserManagementPage() {
 
   const handleChangePassword = async () => {
     if (!pwdForm.currentPassword || !pwdForm.newPassword) {
-      notifications.show({ title: 'Error', message: t('All fields are required'), color: 'red' });
+      notifications.show({ title: t('Error'), message: t('All fields are required'), color: 'red' });
       return;
     }
     if (pwdForm.newPassword !== pwdForm.confirm) {
-      notifications.show({ title: 'Error', message: t('Passwords do not match'), color: 'red' });
+      notifications.show({ title: t('Error'), message: t('Passwords do not match'), color: 'red' });
       return;
     }
     if (pwdForm.newPassword.length < 6) {
-      notifications.show({ title: 'Error', message: t('Password must be at least 6 characters'), color: 'red' });
+      notifications.show({ title: t('Error'), message: t('Password must be at least 6 characters'), color: 'red' });
       return;
     }
     try {
       setPwdLoading(true);
       if (pwdForm.currentPassword === pwdForm.newPassword) {
-        notifications.show({ title: 'Error', message: t('New password cannot be the same as current password'), color: 'red' });
+        notifications.show({ title: t('Error'), message: t('New password cannot be the same as current password'), color: 'red' });
         return;
       }
       await usersApi.changePassword(pwdForm.currentPassword, pwdForm.newPassword);
-      notifications.show({ title: 'Success', message: t('Password changed'), color: 'green', icon: <IconCheck size={16} /> });
+      notifications.show({ title: t('Success'), message: t('Password changed'), color: 'green', icon: <IconCheck size={16} /> });
       setPwdForm({ currentPassword: '', newPassword: '', confirm: '' });
     } catch (e) {
       notifications.show({
-        title: 'Error',
+        title: t('Error'),
         message: e.response?.data?.message || t('Failed to change password'),
         color: 'red'
       });
@@ -70,22 +72,22 @@ function UserManagementPage() {
 
   const handleRegisterEmployee = async () => {
     if (!empForm.email.trim() || !empForm.password) {
-      notifications.show({ title: 'Error', message: t('Email and password are required'), color: 'red' });
+      notifications.show({ title: t('Error'), message: t('Email and password are required'), color: 'red' });
       return;
     }
     if (empForm.password.length < 6) {
-      notifications.show({ title: 'Error', message: t('Password must be at least 6 characters'), color: 'red' });
+      notifications.show({ title: t('Error'), message: t('Password must be at least 6 characters'), color: 'red' });
       return;
     }
     try {
       setEmpLoading(true);
       await usersApi.registerEmployee(empForm.email.trim(), empForm.password);
-      notifications.show({ title: 'Success', message: t('Employee registered'), color: 'green' });
+      notifications.show({ title: t('Success'), message: t('Employee registered'), color: 'green' });
       setEmpForm({ email: '', password: '' });
       loadUsers();
     } catch (e) {
       notifications.show({
-        title: 'Error',
+        title: t('Error'),
         message: e.response?.data?.message || t('Failed to register employee'),
         color: 'red'
       });
@@ -93,14 +95,14 @@ function UserManagementPage() {
   };
 
   const handleDeleteUser = async (u) => {
-    if (!confirm(t('Delete user {email}? This cannot be undone.', { email: u.Email }))) return;
+    if (!(await confirm(t('Delete user {email}? This cannot be undone.', { email: u.Email })))) return;
     try {
       await usersApi.delete(u.Id);
-      notifications.show({ title: 'Deleted', message: t('User removed'), color: 'green' });
+      notifications.show({ title: t('Deleted'), message: t('User removed'), color: 'green' });
       loadUsers();
     } catch (e) {
       notifications.show({
-        title: 'Error',
+        title: t('Error'),
         message: e.response?.data?.message || t('Failed to delete user'),
         color: 'red'
       });
@@ -218,6 +220,7 @@ function UserManagementPage() {
           </Card>
         </>
       )}
+      {ConfirmModal}
     </Box>
   );
 }

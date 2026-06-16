@@ -4,10 +4,12 @@ import { useDisclosure } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
 import { IconPlus, IconEdit, IconTrash, IconSearch } from '@tabler/icons-react';
 import { suppliersApi } from '../api/suppliers';
+import { useConfirmModal } from '../hooks/useConfirmModal';
 import { useTranslation } from 'react-i18next';
 
 function SuppliersPage() {
   const { t } = useTranslation();
+  const { confirm, ConfirmModal } = useConfirmModal();
   const [suppliers, setSuppliers] = useState([]);
   const [filteredSuppliers, setFilteredSuppliers] = useState([]);
   const [editingSupplier, setEditingSupplier] = useState(null);
@@ -84,7 +86,7 @@ function SuppliersPage() {
   };
 
   const handleDelete = async (id) => {
-    if (!confirm('Are you sure you want to delete this supplier?')) return;
+    if (!(await confirm(t('Are you sure you want to delete this supplier?')))) return;
     
     try {
       await suppliersApi.delete(id);
@@ -127,7 +129,7 @@ function SuppliersPage() {
     <Box>
       <Group justify="space-between" mb="lg">
         <Box>
-          <Text size="xl" fw={700}>suppliers</Text>
+          <Text size="xl" fw={700}>{t('Suppliers')}</Text>
           <Text size="sm" c="dimmed">{filteredSuppliers.length} {t('Suppliers registered')}</Text>
         </Box>
         <Button leftSection={<IconPlus size={16} />} onClick={handleOpen}>
@@ -148,10 +150,10 @@ function SuppliersPage() {
         <Table>
           <Table.Thead>
             <Table.Tr>
-              <Table.Th>Name</Table.Th>
-              <Table.Th>Phone</Table.Th>
-              <Table.Th>Email</Table.Th>
-              <Table.Th>Actions</Table.Th>
+              <Table.Th>{t('Name')}</Table.Th>
+              <Table.Th>{t('Phone')}</Table.Th>
+              <Table.Th>{t('Email')}</Table.Th>
+              <Table.Th>{t('Actions')}</Table.Th>
             </Table.Tr>
           </Table.Thead>
           <Table.Tbody>{rows}</Table.Tbody>
@@ -167,18 +169,18 @@ function SuppliersPage() {
         <form onSubmit={(e) => { e.preventDefault(); handleSubmit(); }}>
           <Stack gap="sm">
             <TextInput
-              label="Name"
+              label={t('Name')}
               required
               value={formData.Name}
               onChange={(e) => setFormData({ ...formData, Name: e.target.value })}
             />
             <TextInput
-              label="Phone"
+              label={t('Phone')}
               value={formData.Phone}
               onChange={(e) => setFormData({ ...formData, Phone: e.target.value })}
             />
             <TextInput
-              label="Email"
+              label={t('Email')}
               type="email"
               value={formData.Email}
               onChange={(e) => setFormData({ ...formData, Email: e.target.value })}
@@ -189,7 +191,7 @@ function SuppliersPage() {
               onChange={(e) => setFormData({ ...formData, ContactInfo: e.target.value })}
             />
             <Textarea
-              label="Notes"
+              label={t('Notes')}
               value={formData.Notes}
               onChange={(e) => setFormData({ ...formData, Notes: e.target.value })}
             />
@@ -202,6 +204,7 @@ function SuppliersPage() {
           </Stack>
         </form>
       </Modal>
+      {ConfirmModal}
     </Box>
   );
 }

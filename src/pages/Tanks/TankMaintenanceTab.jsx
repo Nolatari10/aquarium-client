@@ -4,6 +4,7 @@ import { useDisclosure } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
 import { IconPlus } from '@tabler/icons-react';
 import { tanksApi } from '../../api/tanks';
+import { extractErrorMessage } from '../../tools/errorUtils';
 import { useTranslation } from 'react-i18next';
 
 const MAINTENANCE_TYPE_VALUES = ['WaterChange', 'FilterCleaning', 'PlantTrimming', 'SubstrateVacuuming', 'GlassCleaning', 'EquipmentCheck', 'Other'];
@@ -50,7 +51,7 @@ function TankMaintenanceTab({ tankId }) {
       const res = await tanksApi.getMaintenance(tankId, { pageSize: 50 });
       setLogs(res.data || []);
     } catch {
-      notifications.show({ title: 'Error', message: 'Failed to load maintenance', color: 'red' });
+      notifications.show({ title: t('Error'), message: t('Failed to load maintenance'), color: 'red' });
     } finally { setLoading(false); }
   }, [tankId]);
 
@@ -71,13 +72,12 @@ function TankMaintenanceTab({ tankId }) {
       }
 
       await tanksApi.addMaintenance(tankId, data);
-      notifications.show({ title: 'Success', message: 'Maintenance logged', color: 'green' });
+      notifications.show({ title: t('Success'), message: t('Maintenance logged'), color: 'green' });
       close();
       setForm({ PerformedAt: new Date().toISOString().slice(0, 16), MaintenanceType: '', WaterChangePercent: '', WaterChangeLiters: '', DurationMinutes: '', Notes: '', ReminderFrequencyDays: '' });
       loadLogs();
     } catch (e) {
-      const msg = e.response?.data?.ErrorMessage || e.response?.data?.title || 'Failed to save';
-      notifications.show({ title: 'Error', message: msg, color: 'red' });
+      notifications.show({ title: t('Error'), message: extractErrorMessage(e), color: 'red' });
     }
   };
 
@@ -112,7 +112,7 @@ function TankMaintenanceTab({ tankId }) {
                   <Progress value={l.WaterChangePercent} size="sm" color="blue" w="100%" />
                 )}
                 {l.Notes && <Text size="xs">{l.Notes}</Text>}
-                {l.ReminderFrequencyDays && <Text size="xs" c="teal">Reminder: every {l.ReminderFrequencyDays} days</Text>}
+                {l.ReminderFrequencyDays && <Text size="xs" c="teal">{t('Reminder: every {days} days', { days: l.ReminderFrequencyDays })}</Text>}
               </Stack>
             </Group>
           ))}

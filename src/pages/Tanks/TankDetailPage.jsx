@@ -4,6 +4,7 @@ import { Tabs, Group, Text, Badge, ActionIcon, Box, Loader, Stack } from '@manti
 import { notifications } from '@mantine/notifications';
 import { IconArrowLeft } from '@tabler/icons-react';
 import { tanksApi } from '../../api/tanks';
+import { TANK_TYPE_LABELS } from '../../constants/tankConstants';
 import { useTranslation } from 'react-i18next';
 import TankOverviewTab from './TankOverviewTab';
 import TankParametersTab from './TankParametersTab';
@@ -17,12 +18,6 @@ const tabStyles = `
   to { opacity: 1; transform: translateY(0); }
 }
 `;
-
-const TANK_TYPE_LABELS = {
-  PlantedHighTech: 'Planted High-Tech', PlantedLowTech: 'Planted Low-Tech',
-  Aquascape: 'Aquascape', Biotope: 'Biotope', Shrimp: 'Shrimp',
-  Breeding: 'Breeding', Quarantine: 'Quarantine', Other: 'Other',
-};
 
 // Container page with tabbed navigation: Overview, Parameters, Maintenance, Fertilization, Photos.
 // Each tab is a separate component that receives the tank ID as a prop.

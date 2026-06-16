@@ -20,7 +20,7 @@ export default function SpeciesVariantManager({ speciesId, speciesName }) {
       const r = await speciesVariantsApi.getBySpeciesId(speciesId);
       setVariants(r.data || []);
     } catch {
-      notifications.show({ title: 'Error', message: 'Failed to load variants', color: 'red' });
+      notifications.show({ title: t('Error'), message: t('Failed to load variants'), color: 'red' });
     } finally {
       setLoading(false);
     }
@@ -48,23 +48,23 @@ export default function SpeciesVariantManager({ speciesId, speciesName }) {
 
   const handleSubmit = async () => {
     if (!form.VariantName.trim()) {
-      notifications.show({ title: 'Error', message: 'Variant name is required.', color: 'red' });
+      notifications.show({ title: t('Error'), message: t('Variant name is required.'), color: 'red' });
       return;
     }
     try {
       if (editing) {
         await speciesVariantsApi.update(speciesId, editing.Id, form);
-        notifications.show({ title: 'Success', message: 'Variant updated', color: 'green' });
+        notifications.show({ title: t('Success'), message: t('Variant updated'), color: 'green' });
       } else {
         await speciesVariantsApi.create(speciesId, form);
-        notifications.show({ title: 'Success', message: 'Variant created', color: 'green' });
+        notifications.show({ title: t('Success'), message: t('Variant created'), color: 'green' });
       }
       closeEdit();
       loadVariants();
     } catch (e) {
       notifications.show({
-        title: 'Error',
-        message: e.response?.data?.ErrorMessage || 'Operation failed',
+        title: t('Error'),
+        message: e.response?.data?.ErrorMessage || t('Operation failed'),
         color: 'red'
       });
     }
@@ -81,12 +81,12 @@ export default function SpeciesVariantManager({ speciesId, speciesName }) {
     }
     try {
       await speciesVariantsApi.delete(speciesId, variant.Id);
-      notifications.show({ title: 'Success', message: 'Variant deleted', color: 'green' });
+      notifications.show({ title: t('Success'), message: t('Variant deleted'), color: 'green' });
       loadVariants();
     } catch (e) {
       notifications.show({
-        title: 'Error',
-        message: e.response?.data?.ErrorMessage || 'Failed to delete variant',
+        title: t('Error'),
+        message: e.response?.data?.ErrorMessage || t('Failed to delete variant'),
         color: 'red'
       });
     }
@@ -98,14 +98,14 @@ export default function SpeciesVariantManager({ speciesId, speciesName }) {
         <Group justify="space-between" mb="sm">
           <Text fw={600} size="sm">Variants — {speciesName}</Text>
           <Button size="xs" leftSection={<IconPlus size={14} />} onClick={handleCreate}>
-            Add Variant
+            {t('Add Variant')}
           </Button>
         </Group>
 
         {loading ? (
           <Loader size="sm" />
         ) : variants.length === 0 ? (
-          <Text size="sm" c="dimmed">No variants defined. Each species has at least a "Standard" variant.</Text>
+          <Text size="sm" c="dimmed">{t('No variants defined. Each species has at least a "Standard" variant.')}</Text>
         ) : (
           <Stack gap="xs">
             {variants.map(v => (
@@ -114,11 +114,11 @@ export default function SpeciesVariantManager({ speciesId, speciesName }) {
                   <Text size="sm" fw={500}>
                     {v.VariantName}
                     {v.VariantName === 'Standard' && (
-                      <Badge size="xs" variant="light" color="blue" ml={4}>default</Badge>
+                      <Badge size="xs" variant="light" color="blue" ml={4}>{t('default')}</Badge>
                     )}
                   </Text>
                   {v.InventoryLotCount > 0 && (
-                    <Badge size="xs" variant="light" color="teal">{v.InventoryLotCount} lot(s)</Badge>
+                    <Badge size="xs" variant="light" color="teal">{t('{count} lot(s)', { count: v.InventoryLotCount })}</Badge>
                   )}
                 </Group>
                 <Group gap={4}>
@@ -141,19 +141,19 @@ export default function SpeciesVariantManager({ speciesId, speciesName }) {
         )}
       </Paper>
 
-      <Modal opened={editOpened} onClose={closeEdit} title={editing ? 'Edit Variant' : 'Add Variant'}>
+      <Modal opened={editOpened} onClose={closeEdit} title={editing ? t('Edit Variant') : t('Add Variant')}>
         <form onSubmit={(e) => { e.preventDefault(); handleSubmit(); }}>
           <Stack gap="sm">
             <TextInput
-              label="Variant Name"
+              label={t('Variant Name')}
               required
-              placeholder="e.g. Halfmoon Blue, Crowntail"
+              placeholder={t('e.g. Halfmoon Blue, Crowntail')}
               value={form.VariantName}
               onChange={(e) => setForm({ ...form, VariantName: e.target.value })}
             />
             <TextInput
-              label="Image URL"
-              placeholder="https://..."
+              label={t('Image URL')}
+              placeholder={t('https://...')}
               value={form.ImageUrl}
               onChange={(e) => setForm({ ...form, ImageUrl: e.target.value })}
             />
@@ -163,8 +163,8 @@ export default function SpeciesVariantManager({ speciesId, speciesName }) {
               onChange={(e) => setForm({ ...form, Notes: e.target.value })}
             />
             <Group justify="flex-end" mt="md">
-              <Button variant="default" onClick={closeEdit}>Cancel</Button>
-              <Button type="submit">{editing ? 'Update' : 'Create'}</Button>
+              <Button variant="default" onClick={closeEdit}>{t('Cancel')}</Button>
+              <Button type="submit">{editing ? t('Update') : t('Create')}</Button>
             </Group>
           </Stack>
         </form>

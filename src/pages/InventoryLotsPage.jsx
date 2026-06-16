@@ -6,16 +6,16 @@ import {
 import { useDisclosure } from '@mantine/hooks';
 import { useNavigate } from 'react-router-dom';
 import { notifications } from '@mantine/notifications';
-import { IconPlus, IconAlertTriangle, IconSearch, IconTablePlus } from '@tabler/icons-react';
+import { IconPlus, IconAlertTriangle, IconSearch, IconTablePlus, IconEye } from '@tabler/icons-react';
 import { inventoryLotsApi } from '../api/inventoryLots';
-import { speciesApi } from '../api/species';
-import { speciesVariantsApi } from '../api/speciesVariantsApi';
+import { useSpeciesVariantOptions } from '../hooks/useSpeciesVariantOptions';
 import { suppliersApi } from '../api/suppliers';
+import { EmptyState } from '../components/ui';
 import { useTranslation } from 'react-i18next';
 
 function InventoryLotsPage() {
   const [lots, setLots] = useState([]);
-  const [variantOptions, setVariantOptions] = useState([]);
+  const { options: variantOptions } = useSpeciesVariantOptions();
   const [suppliers, setSuppliers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
@@ -46,45 +46,11 @@ function InventoryLotsPage() {
   });
 
   useEffect(() => {
-    loadDropdowns();
+    suppliersApi.getAll().then(r => setSuppliers(r.data || [])).catch(() => {});
     loadLots(1);
   }, []);
 
   useEffect(() => { loadLots(page); }, [page]);
-
-  const loadDropdowns = async () => {
-    try {
-      const [speciesResult, suppliersResult] = await Promise.allSettled([
-        speciesApi.getAll(1, 1000),
-        suppliersApi.getAll(),
-      ]);
-      if (speciesResult.status === 'fulfilled') {
-        const speciesList = speciesResult.value.data.Items || [];
-
-        // Load all variants for all species in parallel
-        const variantPromises = speciesList.map(s =>
-          speciesVariantsApi.getBySpeciesId(s.Id)
-            .then(r => r.data || [])
-            .catch(() => [])
-        );
-        const allVariantArrays = await Promise.allSettled(variantPromises);
-
-        // Build combined dropdown: CommonName — VariantName → SpeciesVariantId
-        const combined = [];
-        speciesList.forEach((s, i) => {
-          const vars = allVariantArrays[i]?.status === 'fulfilled' ? allVariantArrays[i].value : [];
-          vars.forEach(v => {
-            combined.push({
-              value: v.Id.toString(),
-              label: `${s.CommonName} — ${v.VariantName}`
-            });
-          });
-        });
-        setVariantOptions(combined);
-      }
-      if (suppliersResult.status === 'fulfilled') setSuppliers(suppliersResult.value.data);
-    } catch { /* ignore */ }
-  };
 
   const loadLots = async (p) => {
     try {
@@ -94,7 +60,7 @@ function InventoryLotsPage() {
       setLots(data.Items || []);
       setTotalPages(data.TotalPages || 1);
     } catch {
-      notifications.show({ title: 'Error', message: 'Failed to load data', color: 'red' });
+      notifications.show({ title: t('Error'), message: t('Failed to load data'), color: 'red' });
     } finally {
       setListLoading(false);
     }
@@ -104,7 +70,7 @@ function InventoryLotsPage() {
 
   const handleSubmit = async () => {
     if (!formData.SpeciesVariantId) {
-      notifications.show({ title: 'Error', message: 'Please select a species variant.', color: 'red' });
+      notifications.show({ title: t('Error'), message: t('Please select a species variant.'), color: 'red' });
       return;
     }
     try {
@@ -115,14 +81,14 @@ function InventoryLotsPage() {
         DeadOnArrival: formData.DeadOnArrival === '' ? 0 : parseInt(formData.DeadOnArrival),
         UnitCost: formData.UnitCost === '' ? 0 : parseFloat(formData.UnitCost),
       });
-      notifications.show({ title: 'Success', message: 'Lot created', color: 'green' });
+      notifications.show({ title: t('Success'), message: t('Lot created'), color: 'green' });
       setActiveTab('list');
       resetForm();
       refreshLots();
     } catch (e) {
       notifications.show({
-        title: 'Error',
-        message: e.response?.data?.ErrorMessage || 'Failed to create lot',
+        title: t('Error'),
+        message: e.response?.data?.ErrorMessage || t('Failed to create lot'),
         color: 'red'
       });
     } finally {
@@ -139,14 +105,14 @@ function InventoryLotsPage() {
         ...mortalityData,
         Quantity: mortalityData.Quantity === '' ? 0 : parseInt(mortalityData.Quantity),
       });
-      notifications.show({ title: 'Success', message: 'Mortality registered', color: 'green' });
+      notifications.show({ title: t('Success'), message: t('Mortality registered'), color: 'green' });
       closeMortality();
       setMortalityData({ Date: new Date().toISOString().split('T')[0], Quantity: '', Cause: 'Disease', Notes: '' });
       refreshLots();
     } catch {
       notifications.show({
-        title: 'Error',
-        message: 'Failed to register mortality',
+        title: t('Error'),
+        message: t('Failed to register mortality'),
         color: 'red'
       });
     } finally {
@@ -185,7 +151,7 @@ function InventoryLotsPage() {
     if (lot.VariantName && lot.VariantName !== 'Standard') {
       return `${lot.SpeciesCommonName} — ${lot.VariantName}`;
     }
-    return lot.SpeciesCommonName || lot.SpeciesName || 'Unknown';
+    return lot.SpeciesCommonName || lot.SpeciesName || t('Unknown');
   };
 
   const filteredLots = lots.filter(lot =>
@@ -207,19 +173,28 @@ function InventoryLotsPage() {
         <Table.Td fw={500}>
           {displayName(item)}
         </Table.Td>
-        <Table.Td>{supplierMap[item.SupplierId] || 'N/A'}</Table.Td>
+        <Table.Td>{supplierMap[item.SupplierId] || t('N/A')}</Table.Td>
         <Table.Td>{new Date(item.ArrivalDate).toLocaleDateString()}</Table.Td>
         <Table.Td>{item.InitialQuantity}</Table.Td>
         <Table.Td>{item.CurrentStock || 0}</Table.Td>
         <Table.Td><Badge color={status.color}>{status.label}</Badge></Table.Td>
         <Table.Td>
-          <ActionIcon
-            variant="subtle"
-            color="orange"
-            onClick={(e) => { e.stopPropagation(); handleOpenMortality(item); }}
-          >
-            <IconAlertTriangle size={18} />
-          </ActionIcon>
+          <Group gap="xs">
+            <ActionIcon
+              variant="subtle"
+              color="aqua"
+              onClick={(e) => { e.stopPropagation(); navigate(`/inventory/${item.Id}`); }}
+            >
+              <IconEye size={18} />
+            </ActionIcon>
+            <ActionIcon
+              variant="subtle"
+              color="orange"
+              onClick={(e) => { e.stopPropagation(); handleOpenMortality(item); }}
+            >
+              <IconAlertTriangle size={18} />
+            </ActionIcon>
+          </Group>
         </Table.Td>
       </Table.Tr>
     );
@@ -264,6 +239,8 @@ function InventoryLotsPage() {
 
           {listLoading ? (
             <Stack align="center" py="xl"><Loader /></Stack>
+          ) : rows.length === 0 ? (
+            <EmptyState title={t('No lots found')} description={t('Receive your first inventory to start tracking.')} />
           ) : (
             <>
               <Table>
@@ -292,8 +269,8 @@ function InventoryLotsPage() {
             <form onSubmit={(e) => { e.preventDefault(); handleSubmit(); }}>
               <Stack gap="sm">
                 <Select
-                  label="Species — Variant"
-                  placeholder="Select species and variant"
+                  label={t('Species — Variant')}
+                  placeholder={t('Select species and variant')}
                   required
                   searchable
                   data={variantOptions}
@@ -301,14 +278,14 @@ function InventoryLotsPage() {
                   onChange={(value) => setFormData({ ...formData, SpeciesVariantId: value ? parseInt(value) : null })}
                 />
                 <Select
-                  label="Supplier"
+                  label={t('Supplier')}
                   clearable
                   data={suppliers.map(s => ({ value: s.Id.toString(), label: s.Name }))}
                   value={formData.SupplierId?.toString() || ''}
                   onChange={(value) => setFormData({ ...formData, SupplierId: value ? parseInt(value) : null })}
                 />
                 <TextInput
-                  label="Arrival Date"
+                  label={t('Arrival Date')}
                   type="date"
                   required
                   value={formData.ArrivalDate}
@@ -316,21 +293,21 @@ function InventoryLotsPage() {
                 />
                 <Group grow>
                   <NumberInput
-                    label="Initial Quantity"
+                    label={t('Initial Quantity')}
                     required
                     min={0}
                     value={formData.InitialQuantity}
                     onChange={(value) => setFormData({ ...formData, InitialQuantity: value })}
                   />
                   <NumberInput
-                    label="Dead on Arrival"
+                    label={t('Dead on Arrival')}
                     min={0}
                     value={formData.DeadOnArrival}
                     onChange={(value) => setFormData({ ...formData, DeadOnArrival: value })}
                   />
                 </Group>
                 <NumberInput
-                  label="Unit Cost"
+                  label={t('Unit Cost')}
                   required
                   min={0}
                   step={0.01}
@@ -338,18 +315,18 @@ function InventoryLotsPage() {
                   onChange={(value) => setFormData({ ...formData, UnitCost: value })}
                 />
                 <Textarea
-                  label="Notes"
+                  label={t('Notes')}
                   value={formData.Notes}
                   onChange={(e) => setFormData({ ...formData, Notes: e.target.value })}
                 />
-                <Button type="submit" loading={loading}>Create Lot</Button>
+                <Button type="submit" loading={loading}>{t('Create Lot')}</Button>
               </Stack>
             </form>
           </Paper>
         </Tabs.Panel>
       </Tabs>
 
-      <Modal opened={mortalityOpened} onClose={closeMortality} title="Register Mortality">
+      <Modal opened={mortalityOpened} onClose={closeMortality} title={t('Register Mortality')}>
         {selectedLot && (
           <form onSubmit={(e) => { e.preventDefault(); handleRegisterMortality(); }}>
             <Stack gap="sm">
@@ -370,7 +347,7 @@ function InventoryLotsPage() {
                 onChange={(value) => setMortalityData({ ...mortalityData, Quantity: value })}
               />
               <Select
-                label="Cause"
+                label={t('Cause')}
                 value={mortalityData.Cause}
                 onChange={(value) => setMortalityData({ ...mortalityData, Cause: value })}
                 data={['Disease', 'Water Quality', 'Transport', 'Aggression', 'Unknown', 'Old Age']}
@@ -382,7 +359,7 @@ function InventoryLotsPage() {
               />
               <Group justify="flex-end" mt="md">
                 <Button variant="default" onClick={closeMortality}>Cancel</Button>
-                <Button type="submit" loading={loading}>Register</Button>
+                <Button type="submit" loading={loading}>{t('Register')}</Button>
               </Group>
             </Stack>
           </form>
