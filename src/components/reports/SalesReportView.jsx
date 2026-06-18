@@ -81,11 +81,11 @@ export default function SalesReportView({ t }) {
             <Text fw={700} mb="md">{t('Recent Sales')}</Text>
             <Table>
               <Table.Thead>
-                <Table.Tr><Table.Th>{t('Date')}</Table.Th><Table.Th>{t('Customer')}</Table.Th><Table.Th>{t('Items')}</Table.Th><Table.Th>{t('Total')}</Table.Th></Table.Tr>
+                <Table.Tr><Table.Th>{t('Date')}</Table.Th><Table.Th>{t('Customer')}</Table.Th><Table.Th>{t('Type')}</Table.Th><Table.Th>{t('Items')}</Table.Th><Table.Th>{t('Total')}</Table.Th></Table.Tr>
               </Table.Thead>
               <Table.Tbody>
                 {report.Sales.slice(0, 10).map((sale, idx) => (
-                  <Table.Tr key={idx}><Table.Td>{new Date(sale.Date).toLocaleDateString()}</Table.Td><Table.Td fw={500}>{sale.CustomerName}</Table.Td><Table.Td>{sale.ItemCount}</Table.Td><Table.Td><Badge color="green" variant="light">${sale.TotalAmount.toFixed(2)}</Badge></Table.Td></Table.Tr>
+                  <Table.Tr key={idx}><Table.Td>{new Date(sale.Date).toLocaleDateString()}</Table.Td><Table.Td fw={500}>{sale.CustomerName}</Table.Td><Table.Td><Badge color={sale.SaleType === 'Wholesale' ? 'teal' : 'blue'} variant="light" size="sm">{sale.SaleType}</Badge></Table.Td><Table.Td>{sale.ItemCount}</Table.Td><Table.Td><Badge color="green" variant="light">${sale.TotalAmount.toFixed(2)}</Badge></Table.Td></Table.Tr>
                 ))}
               </Table.Tbody>
             </Table>

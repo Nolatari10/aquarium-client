@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Button, Table, Modal, TextInput, Select, NumberInput, Group, Text,
-  Box, Card, Badge, ActionIcon, Stack, Paper, Pagination, Loader, Tooltip
+  Box, Card, Badge, ActionIcon, Stack, Paper, Pagination, Loader, Tooltip, SegmentedControl, Textarea
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { notifications } from '@mantine/notifications';
@@ -10,6 +10,7 @@ import {
 } from '@tabler/icons-react';
 import { salesApi } from '../api/sales';
 import { catalogApi } from '../api/catalog';
+import { customersApi } from '../api/customersApi';
 import { useTranslation } from 'react-i18next';
 import { PageHero, StatusBadge, SectionCard } from '../components/ui';
 
@@ -31,6 +32,7 @@ function SalesPage() {
 
   const [sales, setSales] = useState([]);
   const [catalog, setCatalog] = useState([]);
+  const [businessCustomers, setBusinessCustomers] = useState([]);
   const [saving, setSaving] = useState(false);
   const [listLoading, setListLoading] = useState(false);
   const [page, setPage] = useState(1);
@@ -42,7 +44,10 @@ function SalesPage() {
 
   const [saleData, setSaleData] = useState({
     CustomerName: '',
+    CustomerId: null,
+    SaleType: 'Retail',
     Date: new Date().toISOString().split('T')[0],
+    OrderNote: '',
   });
   const [items, setItems] = useState([emptyItem()]);
 
@@ -53,6 +58,13 @@ function SalesPage() {
     try {
       const res = await catalogApi.getAll(1, 1000);
       setCatalog(res.data?.Items || []);
+    } catch { /* ignore */ }
+  }, []);
+
+  const loadBusinessCustomers = useCallback(async () => {
+    try {
+      const res = await customersApi.getByType('Wholesale');
+      setBusinessCustomers(res.data || []);
     } catch { /* ignore */ }
   }, []);
 
@@ -72,8 +84,9 @@ function SalesPage() {
 
   useEffect(() => {
     loadCatalog();
+    loadBusinessCustomers();
     loadSales(1);
-  }, [loadCatalog, loadSales]);
+  }, [loadCatalog, loadBusinessCustomers, loadSales]);
 
   useEffect(() => { loadSales(page); }, [page, loadSales]);
 
@@ -96,6 +109,10 @@ function SalesPage() {
     };
   });
 
+  const businessCustomerOptions = businessCustomers
+    .filter(c => c.IsActive)
+    .map(c => ({ value: c.Id.toString(), label: c.Name }));
+
   // ── Item editing ──
   const updateItem = (idx, field, value) => {
     setItems(prev => {
@@ -105,6 +122,12 @@ function SalesPage() {
       if (field === 'SpeciesVariantId') {
         const catEntry = catalogByVariant[value];
         updated[idx].SpeciesId = catEntry?.SpeciesId || null;
+        if (catEntry) {
+          const price = saleData.SaleType === 'Wholesale'
+            ? (catEntry.WholesalePrice ?? catEntry.RetailPrice ?? '')
+            : (catEntry.RetailPrice ?? '');
+          updated[idx].UnitPrice = price;
+        }
       }
 
       return updated;
@@ -156,8 +179,11 @@ function SalesPage() {
   const validate = () => {
     const errors = [];
     const validItems = items.filter(i => i.SpeciesVariantId);
-    if (!saleData.CustomerName?.trim()) {
+    if (saleData.SaleType === 'Retail' && !saleData.CustomerName?.trim()) {
       errors.push(t('Customer name is required'));
+    }
+    if (saleData.SaleType === 'Wholesale' && !saleData.CustomerId) {
+      errors.push(t('Please select a business customer'));
     }
     if (!saleData.Date) {
       errors.push(t('Date is required'));
@@ -195,7 +221,10 @@ function SalesPage() {
       setSaving(true);
       const payload = {
         CustomerName: saleData.CustomerName,
+        CustomerId: saleData.CustomerId,
+        SaleType: saleData.SaleType,
         Date: saleData.Date,
+        OrderNote: saleData.OrderNote || null,
         Items: items
           .filter(i => i.SpeciesVariantId)
           .map(i => ({
@@ -229,7 +258,7 @@ function SalesPage() {
   };
 
   const resetForm = () => {
-    setSaleData({ CustomerName: '', Date: new Date().toISOString().split('T')[0] });
+    setSaleData({ CustomerName: '', CustomerId: null, SaleType: 'Retail', Date: new Date().toISOString().split('T')[0], OrderNote: '' });
     setItems([emptyItem()]);
     setFieldErrors([]);
   };
@@ -247,10 +276,16 @@ function SalesPage() {
   // ── Sales list rows ──
   const rows = filteredSales.map(sale => {
     const total = sale.Items?.reduce((sum, item) => sum + (item.Quantity * item.UnitPrice), 0) || 0;
+    const isWholesale = sale.SaleType === 'Wholesale';
     return (
       <Table.Tr key={sale.Id}>
         <Table.Td>{new Date(sale.Date).toLocaleDateString()}</Table.Td>
-        <Table.Td fw={500}>{sale.CustomerName}</Table.Td>
+        <Table.Td>
+          <Badge color={isWholesale ? 'teal' : 'blue'} variant="light" size="sm" mr={6}>
+            {isWholesale ? t('Wholesale') : t('Retail')}
+          </Badge>
+          {sale.CustomerName}
+        </Table.Td>
         <Table.Td>{sale.Items?.length || 0} {t('items')}</Table.Td>
         <Table.Td>
           <StatusBadge status="ok" label={`$${total.toFixed(2)}`} />
@@ -316,15 +351,41 @@ function SalesPage() {
 
       <Modal opened={opened} onClose={close} title={t('Create Sale')} size="xl">
         <Stack gap="md">
+          {/* Sale mode selector */}
+          <SegmentedControl
+            value={saleData.SaleType}
+            onChange={(value) => setSaleData(prev => ({ ...prev, SaleType: value, CustomerId: null }))}
+            data={[
+              { value: 'Retail', label: t('Retail Sale') },
+              { value: 'Wholesale', label: t('Wholesale / Business') },
+            ]}
+            color="aqua"
+            fullWidth
+          />
+
           {/* Sale-level fields */}
           <Group grow>
-            <TextInput
-              label={t('Customer Name')}
-              required
-              value={saleData.CustomerName}
-              onChange={(e) => setSaleData({ ...saleData, CustomerName: e.target.value })}
-              error={fieldErrors.includes(t('Customer name is required')) || undefined}
-            />
+            {saleData.SaleType === 'Retail' ? (
+              <TextInput
+                label={t('Customer Name')}
+                required
+                value={saleData.CustomerName}
+                onChange={(e) => setSaleData({ ...saleData, CustomerName: e.target.value })}
+                error={fieldErrors.includes(t('Customer name is required')) || undefined}
+              />
+            ) : (
+              <Select
+                label={t('Business Customer')}
+                required
+                searchable
+                clearable
+                placeholder={t('Select business customer...')}
+                data={businessCustomerOptions}
+                value={saleData.CustomerId?.toString() || null}
+                onChange={(value) => setSaleData({ ...saleData, CustomerId: value ? Number(value) : null })}
+                error={fieldErrors.includes(t('Please select a business customer')) || undefined}
+              />
+            )}
             <TextInput
               label={t('Date')}
               type="date"
@@ -333,6 +394,13 @@ function SalesPage() {
               onChange={(e) => setSaleData({ ...saleData, Date: e.target.value })}
             />
           </Group>
+
+          <TextInput
+            label={t('Order Note (optional)')}
+            placeholder={t('Internal reference or note')}
+            value={saleData.OrderNote}
+            onChange={(e) => setSaleData({ ...saleData, OrderNote: e.target.value })}
+          />
 
           {/* Items header */}
           <Group justify="space-between" mt="sm">

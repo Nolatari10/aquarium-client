@@ -98,19 +98,19 @@ function TankListPage() {
           <Text size="xs" c={tank.LastWaterTestAt ? 'dimmed' : 'gray'}>
             {tank.LastWaterTestAt ? new Date(tank.LastWaterTestAt).toLocaleDateString() : '—'}
           </Text>
-          {tank.LastWaterTestSummary && <Text size="xs">{tank.LastWaterTestSummary}</Text>}
+          {tank.LastWaterTestSummary && <Text size="xs">{t(tank.LastWaterTestSummary)}</Text>}
         </Table.Td>
         <Table.Td>
           <Text size="xs" c={tank.LastDoseAt ? 'dimmed' : 'gray'}>
             {tank.LastDoseAt ? new Date(tank.LastDoseAt).toLocaleDateString() : '—'}
           </Text>
-          {tank.LastDoseSummary && <Text size="xs">{tank.LastDoseSummary}</Text>}
+          {tank.LastDoseSummary && <Text size="xs">{t(tank.LastDoseSummary)}</Text>}
         </Table.Td>
         <Table.Td>
           <Text size="xs" c={tank.LastMaintenanceAt ? 'dimmed' : 'gray'}>
             {tank.LastMaintenanceAt ? new Date(tank.LastMaintenanceAt).toLocaleDateString() : '—'}
           </Text>
-          {tank.LastMaintenanceSummary && <Text size="xs">{tank.LastMaintenanceSummary}</Text>}
+          {tank.LastMaintenanceSummary && <Text size="xs">{t(tank.LastMaintenanceSummary)}</Text>}
         </Table.Td>
         <Table.Td><Badge size="xs" color={stat.color} variant="light">{stat.label}</Badge></Table.Td>
         <Table.Td>

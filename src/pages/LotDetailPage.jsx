@@ -12,6 +12,7 @@ import { LoadingState, EmptyState } from '../components/ui';
 import { inventoryLotsApi } from '../api/inventoryLots';
 import { notifications } from '@mantine/notifications';
 import { useTranslation } from 'react-i18next';
+import QrLabel from '../components/qr/QrLabel'
 
 function LotDetailPage() {
   const { id } = useParams();
@@ -73,10 +74,10 @@ function LotDetailPage() {
           </ActionIcon>
           <Box>
             <Text size="xl" fw={700}>
-              {t('Lot #{id} — {name}', { id: history.LotId, name: history.SpeciesName })}
+              {t('Lot #{{id}} — {{name}}', { id: history.LotId, name: history.SpeciesName })}
             </Text>
             {history.VariantName && (
-              <Text size="sm" c="dimmed">{history.VariantName}</Text>
+              <Text size="sm"  c="red">{history.VariantName}</Text>
             )}
           </Box>
         </Group>
@@ -100,7 +101,7 @@ function LotDetailPage() {
             <Box>
               <Text size="xs" c="dimmed">{t('Sold')}</Text>
               <Text size="lg" fw={700}>{soldTotal}</Text>
-              <Text size="xs" c="dimmed">{t('{pct}% of initial', { pct: history.InitialQuantity > 0 ? Math.round(soldTotal / history.InitialQuantity * 100) : 0 })}</Text>
+              <Text size="xs" c="dimmed">{t('{{pct}}% of initial', { pct: history.InitialQuantity > 0 ? Math.round(soldTotal / history.InitialQuantity * 100) : 0 })}</Text>
             </Box>
           </Group>
         </Card>
@@ -111,7 +112,7 @@ function LotDetailPage() {
             <Box>
               <Text size="xs" c="dimmed">{t('Non-Sold Mortality')}</Text>
               <Text size="lg" fw={700}>{mortalityTotal}</Text>
-              <Text size="xs" c="dimmed">{t('+ {doa} DOA', { doa: history.DeadOnArrival })}</Text>
+              <Text size="xs" c="dimmed">{t('+ {{doa}} DOA', { doa: history.DeadOnArrival })}</Text>
             </Box>
           </Group>
         </Card>
@@ -122,12 +123,15 @@ function LotDetailPage() {
             <Box>
               <Text size="xs" c="dimmed">{t('Unit Cost')}</Text>
               <Text size="lg" fw={700}>${history.UnitCost.toFixed(2)}</Text>
-              <Text size="xs" c="dimmed">{t('Initial: {qty}', { qty: history.InitialQuantity })}</Text>
+              <Text size="xs" c="dimmed">{t('Initial: {{qty}}', { qty: history.InitialQuantity })}</Text>
             </Box>
           </Group>
         </Card>
       </SimpleGrid>
-
+      <Card padding="lg" radius="md">
+        <QrLabel label="Lot ID" value={`${window.location.origin}/inventory/${history.LotId}`}  
+        subtitle={history.BatchNumber ? `Batch: ${history.BatchNumber}` : `Lot #${history.LotId}`} />
+      </Card>
       <Card padding="lg" radius="md" withBorder mb="lg">
         <Text fw={700} mb="md">{t('Lot Information')}</Text>
         <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} spacing="md">

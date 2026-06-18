@@ -227,6 +227,7 @@ function DashboardPage() {
             <Stack gap="xs">
               {recentSales.map((sale) => {
                 const total = sale.Items?.reduce((sum, item) => sum + (item.Quantity * item.UnitPrice), 0) || 0;
+                const isWholesale = sale.SaleType === 'Wholesale';
                 return (
                   <Paper
                     key={sale.Id}
@@ -236,7 +237,12 @@ function DashboardPage() {
                   >
                     <Group justify="space-between">
                       <Box>
-                        <Text size="sm" fw={500}>{sale.CustomerName}</Text>
+                        <Group gap={6}>
+                          <Text size="sm" fw={500}>{sale.CustomerName}</Text>
+                          <Badge color={isWholesale ? 'teal' : 'blue'} variant="light" size="xs">
+                            {isWholesale ? t('Wholesale') : t('Retail')}
+                          </Badge>
+                        </Group>
                         <Text size="xs" c="dimmed">
                           {new Date(sale.Date).toLocaleDateString()}
                         </Text>

@@ -11,7 +11,7 @@ import TankParametersTab from './TankParametersTab';
 import TankMaintenanceTab from './TankMaintenanceTab';
 import TankFertilizationTab from './TankFertilizationTab';
 import TankPhotosTab from './TankPhotosTab';
-
+import QrLabel from '../../components/qr/QrLabel';
 const tabStyles = `
 @keyframes tabEnter {
   from { opacity: 0; transform: translateY(6px); }
@@ -66,7 +66,7 @@ function TankDetailPage() {
           </Box>
         </Group>
       </Group>
-
+     
       <Tabs value={activeTab} onChange={setActiveTab}>
         <Tabs.List>
           <Tabs.Tab value="overview">{t('Overview')}</Tabs.Tab>
@@ -79,6 +79,9 @@ function TankDetailPage() {
         <div key={activeTab} style={{ animation: 'tabEnter 0.25s ease both' }}>
           <Tabs.Panel value="overview" pt="md">
             <TankOverviewTab tank={tank} onUpdate={loadTank} />
+            <Text size="lg" c="blue" mt="lg">{t('Scan the QR code below to quickly access this tank\'s details on your mobile device.')}</Text>
+       <QrLabel label="Tank ID" value={`${window.location.origin}/tanks/${tank.Id}`}  
+              subtitle={tank.Location ? `Location: ${tank.Location}` : `Tank #${tank.Id}`} />
           </Tabs.Panel>
           <Tabs.Panel value="parameters" pt="md">
             <TankParametersTab tankId={tank.Id} />
@@ -94,6 +97,7 @@ function TankDetailPage() {
           </Tabs.Panel>
         </div>
       </Tabs>
+      
     </Box>
   );
 }

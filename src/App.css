@@ -182,3 +182,38 @@
     border-right-color: var(--border);
   }
 }
+
+@media print {
+  html,
+  body {
+    margin: 0;
+    padding: 0;
+    background: white;
+  }
+
+  body * {
+    visibility: hidden;
+  }
+
+  .qr-print-card,
+  .qr-print-card * {
+    visibility: visible;
+  }
+
+  .qr-print-card {
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 70mm;
+    padding: 8mm;
+    margin: 0;
+    background: white;
+    box-shadow: none !important;
+    border: 1px solid #000;
+    z-index: 9999;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+}

@@ -112,7 +112,7 @@ function TankMaintenanceTab({ tankId }) {
                   <Progress value={l.WaterChangePercent} size="sm" color="blue" w="100%" />
                 )}
                 {l.Notes && <Text size="xs">{l.Notes}</Text>}
-                {l.ReminderFrequencyDays && <Text size="xs" c="teal">{t('Reminder: every {days} days', { days: l.ReminderFrequencyDays })}</Text>}
+                {l.ReminderFrequencyDays && <Text size="xs" c="teal">{t('Reminder: every {{days}} days', { days: l.ReminderFrequencyDays })}</Text>}
               </Stack>
             </Group>
           ))}

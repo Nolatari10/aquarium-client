@@ -5,6 +5,7 @@ import {
   IconDashboard,
   IconFish,
   IconUsers,
+  IconUser,
   IconPackage,
   IconShoppingCart,
   IconBook,
@@ -14,11 +15,12 @@ import {
   IconMoon,
   IconDroplet,
   IconBell,
-  IconUser,
+  IconId,
 } from '@tabler/icons-react';
 import DashboardPage from './pages/DashboardPage';
 import SpeciesPage from './pages/SpeciesPage';
 import SuppliersPage from './pages/SuppliersPage';
+import CustomersPage from './pages/CustomersPage';
 import InventoryLotsPage from './pages/InventoryLotsPage';
 import BulkReceiveInventoryPage from './pages/BulkReceiveInventoryPage';
 import LotDetailPage from './pages/LotDetailPage';
@@ -39,6 +41,7 @@ const navLinks = [
   { icon: IconDashboard, label: 'Dashboard', to: '/' },
   { icon: IconFish, label: 'Species', to: '/species' },
   { icon: IconUsers, label: 'Suppliers', to: '/suppliers' },
+  { icon: IconId, label: 'Customers', to: '/customers' },
   { icon: IconPackage, label: 'Inventory', to: '/inventory' },
   { icon: IconShoppingCart, label: 'Sales', to: '/sales' },
   { icon: IconBook, label: 'Catalog', to: '/catalog' },
@@ -172,6 +175,7 @@ function App() {
           <Route path="/" element={<RequireAuth><DashboardPage /></RequireAuth>} />
           <Route path="/species" element={<RequireAuth><SpeciesPage /></RequireAuth>} />
           <Route path="/suppliers" element={<RequireAuth><SuppliersPage /></RequireAuth>} />
+          <Route path="/customers" element={<RequireAuth><CustomersPage /></RequireAuth>} />
           <Route path="/inventory" element={<RequireAuth><InventoryLotsPage /></RequireAuth>} />
           <Route path="/inventory/bulk-receive" element={<RequireAuth><BulkReceiveInventoryPage /></RequireAuth>} />
           <Route path="/inventory/:id" element={<RequireAuth><LotDetailPage /></RequireAuth>} />
